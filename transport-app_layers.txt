@@ -1,0 +1,341 @@
+========================================================================================================================
+										OSI LAYERS 4 - 7: PROTOCOLS & SECURITY
+========================================================================================================================
+
++----------------------------------------------------------------------------------------------------------------------+
+| 3.0 TERMINAL LEARNING OBJECTIVE (TLO)                                                                                |
++----------------------------------------------------------------------------------------------------------------------+
+| Given applicable references, Capture-the-Flag (CTFd) challenges, and access to the appropriate virtual training      |
+| environment, the student will examine Layers 4-7 of the Open Systems Interconnection (OSI) Model to facilitate       |
+| communication, manage traffic, and provide key application-layer services to achieve 70% or higher on the Packet     |
+| Payloads CTFd challenges[cite: 623].                                                                                 |
++----------------------------------------------------------------------------------------------------------------------+
+
+ CORE OSI HIGH-LAYER TAXONOMY
+ ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+  [LAYER]           [PRIMARY PROTOCOLS]            [SECURITY FOCUS & FUNCTION]
+  ╔═════════════════╤══════════════════════════════╤═══════════════════════════════════════════════════════════════════════════╗
+  ║ L7: Application ║ HTTP(s), DNS, FTP, TFTP,     ║ Defends against SQL injection, XSS, phishing, and buffer       		   ║
+  ║                 ║ SMTP, POP, IMAP, DHCP, NTP,  ║ overflows. Inspected by Web Application Firewalls (WAFs)       		   ║
+  ║                 ║ TACACS+, RADIUS, Diameter,   ║ and Application IDS/IPS systems[cite: 628].                  			   ║
+  ║                 ║ SNMP, RTP, RDP, Kerberos,    ║                                                               			   ║
+  ║                 ║ LDAP[cite: 624, 625].        ║                                                               			   ║
+  ╟─────────────────┼──────────────────────────────┼───────────────────────────────────────────────────────────────────────────╢
+  ║ L6: Presentation║ SSL, TLS, ASCII, UTF-8,      ║ Translates, formats, encrypts, and compresses data. Ensures L7 		   ║
+  ║                 ║ CP437, Base64, URL-Encoding  ║ understands syntax/semantics[cite: 307, 316]. Mitigates       			   ║
+  ║                 ║[cite: 627, 318, 327, 329].   ║ eavesdropping, MITM attacks, and decoding exploits[cite: 628].			   ║
+  ╟─────────────────┼──────────────────────────────┼───────────────────────────────────────────────────────────────────────────╢
+  ║ L5: Session     ║ NetBIOS, SOCKS, RPC          ║ Manages establishing, maintaining, and terminating network     		   ║
+  ║                 ║[cite: 624].                  ║ sessions[cite: 627]. Enforces timeouts, auth, and authorization		   ║
+  ║                 ║                              ║ to neutralize session hijacking / replay vectors[cite: 627]. 			   ║
+  ╟─────────────────┼──────────────────────────────┼───────────────────────────────────────────────────────────────────────────╢
+  ║ L4: Transport   ║ TCP, UDP                     ║ End-to-end host delivery, reliability, flow control, and port             ║
+  ║                 ║[cite: 627].                  ║ multiplexing[cite: 630, 645, 655]. Secured via stateful firewall rules    ║
+  ║                 ║                              ║ and Layer 4 traffic filtering mechanisms[cite: 627].         			   ║
+  ╚═════════════════╧══════════════════════════════╧═══════════════════════════════════════════════════════════════════════════╝
+
+
+========================================================================================================================
+ LAYER 4 — THE TRANSPORT LAYER
+========================================================================================================================
+
+ ─────────── [ 3.1 & 3.1.1 TRANSPORT PROTOCOL DIALECTICS ] ───────────
+
+  ● TCP (Transmission Control Protocol) [cite: 631]
+    ├─ PDU Typology      : Segment[cite: 633].
+    ├─ Operational Style : Connection-oriented, unicast-only architecture[cite: 631, 644].
+    └─ Core Mechanisms   : Demands a explicit 3-way handshake before execution[cite: 644, 689]. Provides robust error 
+                           detection, byte sequencing, window-driven flow control, and formal delivery verification 
+                           via explicit acknowledgments[cite: 627, 631, 645].
+
+  ● UDP (User Datagram Protocol) [cite: 635]
+    ├─ PDU Typology      : Datagram[cite: 637].
+    ├─ Operational Style : Connectionless, low-overhead transmission engine[cite: 635, 636]. Can handle Broadcast, 
+                           Multicast, and Unicast traffic streams seamlessly[cite: 647].
+    └─ Core Mechanisms   : No session handshake, packet sequencing, or flow-control loops[cite: 635, 638, 648]. Integrity 
+                           is checked via an optional IPv4 checksum (mandatory under IPv6)[cite: 648, 846]. Reliability 
+                           responsibilities are deferred to application-layer logic[cite: 648].
+
+
+ ─────────── [ 3.1.2 ADDR LOGIC: IANA PORT CLASSIFICATIONS ] ───────────
+
+    0                                 1023 1024                            49151 49152                        65535
+    ┌─────────────────────────────────────┬─────────────────────────────────────┬─────────────────────────────────┐
+    │          WELL-KNOWN PORTS           │           REGISTERED PORTS          │         DYNAMIC / PRIVATE       │
+    └─────────────────────────────────────┴─────────────────────────────────────┴─────────────────────────────────┘
+      → SYSTEM LEVEL [cite: 665]                  → USER/SERVICE LEVEL [cite: 668]            → EPHEMERAL ALLOCATION [cite: 674]
+      → Requires root/sudo[cite: 667].           → No root privileges required[cite: 672].  → Temporary client sockets[cite: 642].
+      → Core services (HTTP, SSH)[cite: 678].    │ Registered applications (RDP) [cite: 670].│ No IANA tracking[cite: 675].
+                                                  └─────────────────────────────────────┘
+
+  ● Multiplexing & Demultiplexing: Ports let multiple apps share a single network interface[cite: 655]. The OS uses the 
+    destination port value to demultiplex arriving frames, directing the binary payload to the matching listening 
+    socket descriptor[cite: 656].
+  ● Socket Binding: Server-side sockets execute a bind routine combining a specific IP address and listening port 
+    number, advertising an accessible point of entry for clients to target[cite: 677].
+
+
+ ─────────── [ 3.1.3 TCP LIFE CYCLE & RELIABILITY STATE MACHINE ] ───────────
+
+  [ PHASE 1: 3-WAY HANDSHAKE CONNECTION ESTABLISHMENT ] [cite: 689]
+    1. CLIENT ───[ SYN ]───────────────────────────────────────────────► SERVER
+       │          Flags: SYN=1, ACK=0[cite: 690, 691].
+       │          SEQ  : Client Initial Sequence Number (ISN)[cite: 690].
+       │          Opts : Maximum Segment Size (MSS), Window Scale, SACK Permitted[cite: 693, 694, 695].
+       ▼
+    2. CLIENT ◄──[ SYN-ACK ]──────────────────────────────────────────── SERVER
+       │          Flags: SYN=1, ACK=1[cite: 696, 697].
+       │          SEQ  : Server ISN | ACK: Client ISN + 1[cite: 696, 697].
+       │          Opts : Echoes supporting parameters back to the client[cite: 698].
+       ▼
+    3. CLIENT ───[ ACK ]───────────────────────────────────────────────► SERVER
+                  Flags: SYN=0, ACK=1[cite: 699, 701].
+                  SEQ  : Client ISN + 1 | ACK: Server ISN + 1[cite: 699, 700].
+                  State: Connection shifts to ESTABLISHED on both sides[cite: 701].
+
+  [ PHASE 2: ACTIVE DATA EXCHANGE ] [cite: 702]
+    ● Bi-directional communication uses PSH-ACK and ACK frames[cite: 701, 704, 709].
+    ● Data size tracking is managed explicitly by byte counting, updating the sequence space for every byte 
+      transmitted across the channel[cite: 726].
+
+  [ PHASE 3: 4-WAY GRACEFUL CONNECTION TERMINATION ] [cite: 710]
+    1. INITIATOR ───[ FIN-ACK ]───► RECEIVER   (Signals initiator has no more data to write)[cite: 712, 781].
+    2. INITIATOR ◄──[ ACK ]───────  RECEIVER   (Receiver acknowledges the initiator's FIN request)[cite: 714].
+    3. INITIATOR ◄──[ FIN-ACK ]───  RECEIVER   (Receiver issues its own shutdown request)[cite: 715].
+    4. INITIATOR ───[ ACK ]───────► RECEIVER   (Final verification; channel enters TIME-WAIT)[cite: 719, 805].
+
+
+ ─────────── [ 3.1.4 & 3.1.4.1 TCP HEADER ARCHITECTURE ] ───────────
+
+   0                   4                   8                   12                  16                  31
+  ┌───────────────────────────────────────┬───────────────────────────────────────┐
+  │              SOURCE PORT              │           DESTINATION PORT            │ Byte 0-3 [cite: 722, 723]
+  ├───────────────────────────────────────┴───────────────────────────────────────┤
+  │                               SEQUENCE NUMBER                                 │ Byte 4-7 [cite: 724]
+  ├───────────────────────────────────────────────────────────────────────────────┤
+  │                            ACKNOWLEDGMENT NUMBER                              │ Byte 8-11 [cite: 728]
+  ├───────┬───────┬───┬───────────────────┬───────────────────────────────────────┤
+  │ DATA  │ RSVD  │ N │   CONTROL FLAGS   │              WINDOW SIZE              │ Byte 12-15 [cite: 729, 730, 731, 732]
+  │OFFSET │(3-BIT)│ S │8-BITS (CWR...FIN) │                                       │ (Window Size handles Flow) [cite: 732, 733]
+  ├───────┴───────┴───┴───────────────────┼───────────────────────────────────────┤
+  │               CHECKSUM                │            URGENT POINTER             │ Byte 16-19 [cite: 736, 737]
+  ├───────────────────────────────────────┴───────────────────────────────────────┤
+  │                    OPTIONS (VARIABLE LENGTH, 0 TO 320 BITS)                   │ Byte 20-59 [cite: 738]
+  └───────────────────────────────────────────────────────────────────────────────┘
+
+  ● CONTROL FLAGS MAP (Byte 13 / Bits 104-111) [cite: 731]
+    ┌─────┬─────┬─────┬─────┬─────┬─────┬─────┬─────┐
+    │ CWR │ ECE │ URG │ ACK │ PSH │ RST │ SYN │ FIN │
+    │ 128 │  64 │  32 │  16 │  8  │  4  │  2  │  1  │ ← Bit Multipliers [cite: 786]
+    └─────┴─────┴─────┴─────┴─────┴─────┴─────┴─────┘
+    ├─ SYN     (0x02): Initializes sequence numbers for new connections[cite: 761, 786].
+    ├─ SYN/ACK (0x12): Server's response confirming connection parameters[cite: 786].
+    ├─ ACK     (0x10): Validates the acknowledgment number field[cite: 728, 786].
+    ├─ PSH/ACK (0x18): flushes buffers directly to the application layer[cite: 777, 786].
+    ├─ RST/ACK (0x14): Abruptly aborts ungraceful or invalid connections[cite: 778, 786].
+    └─ FIN/ACK (0x11): Initiates normal connection teardown[cite: 781, 786].
+
+  ● CRITICAL TCP STATE DEFINITIONS
+    ├─ LISTEN        : Server is waiting for connection requests on an open port[cite: 795].
+    ├─ SYN-SENT      : Sent a connection request, waiting for a matching response[cite: 796].
+    ├─ SYN-RECEIVED  : Received and sent connection requests, waiting for final ACK[cite: 797].
+    ├─ ESTABLISHED   : Active connection, data can be transferred reliably[cite: 798, 799].
+    ├─ FIN-WAIT-1    : Sent a termination request, waiting for ACK or remote FIN[cite: 800].
+    ├─ FIN-WAIT-2    : Remote peer acknowledged our FIN, waiting for their FIN[cite: 801].
+    ├─ CLOSE-WAIT    : Remote peer closed, local application has not terminated yet[cite: 802].
+    ├─ CLOSING       : Simultaneous close, waiting for remote termination ACK[cite: 803].
+    ├─ LAST-ACK      : Received remote FIN, sent local FIN, waiting for final ACK[cite: 804].
+    ├─ TIME-WAIT     : Waiting to ensure remote peer received the final close ACK[cite: 805].
+    └─ CLOSED        : Idle state; no active network connection exists[cite: 806].
+
+  ● ADVANCED OPTIONS ENGINE (Kinds 0-15)
+    ├─ Kind 0 : End of Options List. Delimits option parsing routines[cite: 807].
+    ├─ Kind 1 : No-Operation (NOP). Multi-byte word padding to ensure alignment on 32-bit boundaries[cite: 808, 810].
+    ├─ Kind 2 : Maximum Segment Size (MSS). Negotiates maximum payload bytes per frame to prevent L3 fragmentation[cite: 811, 813].
+    ├─ Kind 3 : Window Scaling. Bitwise shift multiplier to scale windows up to 1GB[cite: 770, 824].
+    ├─ Kind 4 : SACK Permitted. Negotiates permission for selective retransmission tracking[cite: 832].
+    ├─ Kind 5 : Selective Acknowledgment (SACK). pinpoints missing blocks to avoid full retransmission[cite: 833, 834].
+    ├─ Kind 8 : Timestamps. Tracks round-trip times and protects against old, delayed packets[cite: 768, 838].
+    └─ K14/15 : Alternate Checksum Request/Data. Rarely used custom checksum options[cite: 839, 841].
+
+
+ ─────────── [ 3.1.4.2 UDP HEADER ARCHITECTURE ] ───────────
+
+   0                   7                   15                  23                  31
+  ┌───────────────────────────────────────┬───────────────────────────────────────┐
+  │              SOURCE PORT              │           DESTINATION PORT            │ Byte 0-3 [cite: 843, 844]
+  ├───────────────────────────────────────┼───────────────────────────────────────┤
+  │                LENGTH                 │               CHECKSUM                │ Byte 4-7 [cite: 845]
+  └───────────────────────────────────────┴───────────────────────────────────────┘
+  ● Security Profiling: Because UDP is connectionless, port scans cannot rely on state flags[cite: 850]. Instead, 
+    scanners send raw datagrams and listen for ICMP Type 3 Code 3 (Port Unreachable) responses from closed target 
+    ports[cite: 851, 852].
+
+
+========================================================================================================================
+ LAYER 5 — THE SESSION LAYER
+========================================================================================================================
+
+ ─────────── [ CORE OSI LAYER 5 ANALYSIS ] ───────────
+  ● Session Management: Tracks the lifetime of active network sessions, managing their establishment, 
+    maintenance, and orderly teardown[cite: 627].
+  ● Key Protocols Examined[cite: 624]:
+    ├─ NetBIOS (Network Basic Input Output System): Legacy API and protocols supporting naming services and session tracking.
+    │  └─ Suffix System: Suffix bytes designate target network capabilities (e.g., <00> Workstation, <20> File Server).
+    ├─ SOCKS Protocol: Generic proxy mechanism that routes raw TCP/UDP streams transparently across boundary points.
+    └─ RPC (Remote Procedure Call): Client-server protocol allowing applications to run code on remote systems as if it 
+       were local[cite: 296, 298].
+  ● RPC vs API Distinctions[cite: 624]:
+    ├─ RPC (Remote Procedure Call) is a strict communication protocol designed to execute functions across network 
+    │  boundaries, abstracting away underlying network implementation details[cite: 296, 298].
+    └─ API (Application Programming Interface) is a broader concept defining interaction contracts and data structures[cite: 299, 300]. 
+       APIs can use various formats, including RESTful HTTP, SOAP, or GraphQL[cite: 304].
+
+
+========================================================================================================================
+ LAYER 6 — THE PRESENTATION LAYER
+========================================================================================================================
+
+ ─────────── [ PRESENTATION LAYER CORE FUNCTIONS ] ───────────
+  ● Responsibilities: Translates data between local application logic and standard network transfer structures, 
+    managing character encoding, compression, and encryption/decryption tasks[cite: 307, 316].
+
+  ● Character Encodings & System Archetypes[cite: 310, 318, 321, 333]:
+    ├─ ASCII        : 7-bit framework mapping standard English characters to values from 0–127[cite: 310, 318, 319].
+    ├─ CP437        : Legacy 8-bit IBM PC system incorporating box-drawing symbols[cite: 333, 334].
+    ├─ Unicode      : Universal code point registry mapping more than 137,000 global characters and symbols[cite: 321, 322].
+    ├─ UTF-8        : Variable-width system using 1 to 4 bytes per character; standard for modern web traffic[cite: 323, 324].
+    └─ Base64       : Translates raw binary into printable ASCII characters for safe transmission over text protocols[cite: 327].
+
+  ● Mojibake (Garbled Text): Occurs when bytes are decoded using a different character encoding scheme than the one used 
+    to encode them[cite: 311, 314]. It represents a syntax misinterpretation problem, not underlying data loss[cite: 311, 312].
+
+  ● Data Transformation Typology[cite: 313, 315]:
+    ├─ Encoding    : Algorithmic transformation to guarantee data compatibility and readability across diverse platforms[cite: 313].
+    ├─ Encryption  : Scrambles plaintext into ciphertext using cryptographic keys to preserve data confidentiality[cite: 315].
+    └─ Compression : Optimizes network utilization by shrinking file sizes using lossless or lossy data reduction math[cite: 315].
+
+
+========================================================================================================================
+ LAYER 7 — THE APPLICATION LAYER
+========================================================================================================================
+
+ ─────────── [ CORE PROTOCOL FRAMEWORKS ] ───────────
+
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ TELNET (TCP 23)                                                                                                    │
+  ├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Character-oriented virtual terminal service. Transmits commands in cleartext, exposing sessions to full            │
+  │ network interception and credential harvesting threats.                                                            │
+  └────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ SSH (TCP 22)                                                                                                                 │
+  ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Cryptographically secured remote access standard[cite: 646].                                                                 │
+  │ ● Architecture Components:                                                                                                   │
+  │   ├─ SSH-TRANS: Transport layer protocol providing connection setup, host authentication, and encryption[cite: 421, 422].    │
+  │   ├─ SSH-USERAUTH: Authenticates the user to the server using passwords, public keys, or host tokens.                        │
+  │   └─ SSH-CONN: Multiplexes multiple channels into encrypted logical streams (shells, port forwarding).                       │
+  │ ● Filesystem Records: ~/.ssh/known_hosts tracks known public keys of remote servers to prevent impersonation[cite: 419, 420].│
+  └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  ┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ HTTP / HTTPS (TCP 80 / 443)                                                                                               │
+  ├───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Web delivery standard. HTTPS adds an encryption layer by wrapping cleartext HTTP inside TLS/SSL sessions[cite: 455, 456]. │
+  │ ● Status Codes: 1xx Informational, 2xx Success, 3xx Redirection, 4xx Client Error, 5xx Server Error[cite: 434].           │
+  │ ● Evolutions: HTTP/2 adds TCP multiplexing and header compression[cite: 462]. HTTP/3 replaces TCP with QUIC over          │
+  │   UDP, eliminating traditional connection setup and handshake delays[cite: 462, 464, 467].                                │
+  └───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ DNS (UDP/TCP 53)                                                                                                           │
+  ├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Translates human-readable domain names into IP addresses. Uses UDP for standard queries and falls back to TCP for          │
+  │ large zone transfers or responses that exceed standard packet limits[cite: 625].                                           │
+  │ ● Core Records: A (IPv4), AAAA (IPv6), CNAME (Canonical name alias), MX (Mail Exchange), TXT (Text records).               │
+  │ ● Resolution Chain: Client Resolver → Recursive Resolver → Root Server → TLD Server → Authoritative Server [cite: 531-533].│
+  └────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ FTP (TCP 20/21)                                                                                                                │
+  ├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Dual-channel file transfer mechanism using Port 21 for commands and a separate port for data[cite: 535].                       │
+  │ ● Active Mode: Client opens a port and sends a PORT command; the server connects back from its own Port 20.                    │
+  │   Can be blocked by client-side firewalls.                                                                                     │
+  │ ● Passive Mode: Client sends a PASV command; the server opens a random high port and the client connects to it[cite: 548, 550].│
+  └────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ TFTP (UDP 69)                                                                                                            │
+  ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Minimalist file transfer utility commonly used for network booting and firmware updates[cite: 550, 553].                 │
+  │ Lacks encryption or authentication entirely, relying on lock-step acknowledgment cycles for reliability[cite: 553, 554]. │
+  └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ MAIL PROTOCOLS: SMTP (TCP 25) / POP3 (TCP 110) / IMAP (TCP 143)                                                    │
+  ├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ ● SMTP: Pushes mail messages between servers or from mail clients to outbound relays[cite: 646].                   │
+  │ ● POP3: Downloads messages from a mail server onto a local client; typically removes mail from the server. (GUI)   │
+  │ ● IMAP: Synchronizes mail clients directly with the server, maintaining message states across multiple devices.    │
+  └────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ DHCPv4 / DHCPv6 (UDP 67/68 & UDP 546/547)                                                                          │
+  ├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Automates network configuration parameters, leasing IP addresses, subnet masks, gateways, and DNS servers.         │
+  │ ● Vulnerabilities: Rogue DHCP servers can issue fraudulent gateways or malicious DNS configurations to clients,    │
+  │   while DHCP starvation attacks can exhaust available address pools.                                               │
+  | ● DORA (v4)																										   |
+  |	  - Discover (broadcast)																						   |
+  |	  - Offer (unicast)																								   |
+  |   - Request (broadcast)																							   |
+  |   - Acknowledge (unicast)																						   |
+  | ● SLAAC (v6)																									   |
+  |	  - Solicit (multicast)																							   |
+  |	  - Advertise (unicast)																							   |
+  |	  - Request/info request (multicast)																			   |
+  |	  - Replay (unicast)																							   |
+  └────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ NTP (UDP 123)                                                                                                      │
+  ├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Synchronizes time across distributed network devices. Crucial for forensic analysis, log correlation, and          │
+  │ time-sensitive security protocols like Kerberos ticket validation[cite: 593].                                      │
+  └────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  ┌──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ AUTH PROTOCOLS: TACACS+ (TCP 49) / RADIUS (UDP 1812/1813) / DIAMETER (TCP 3868)                                      │
+  ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Enterprise AAA architectures managing Authentication, Authorization, and Accounting functions[cite: 565].            │
+  │ ● TACACS+: Encrypts the entire transmission payload and separates AAA functions for fine-grained access control.     │
+  │ ● RADIUS: Encrypts only the user password field and combines authentication and authorization decisions together.    │
+  │ ● Diameter: Reliable, TCP/SCTP-based evolution of RADIUS featuring application-layer acknowledgments [cite: 566-568].│
+  └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ SNMP (UDP 161/162)                                                                                                      │
+  ├─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Collects management metrics and monitors network device status using Community Strings[cite: 579].                      │
+  │ ● Security Profiling: SNMPv1/v2 transmit community strings in cleartext, leaving them vulnerable to sniffing[cite: 579].│
+  │   SNMPv3 adds cryptographic authentication and message encryption to protect sensitive data[cite: 579].                 │
+  └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  ┌────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ REAL-TIME & REMOTE ACCESS: RTP (UDP Ephemeral) / RDP (TCP 3389)                                                    │
+  ├────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ ● RTP: Transmits time-sensitive audio and video media streams across UDP channels[cite: 580, 581].                 │
+  │ ● RDP: Microsoft proprietary remote desktop standard providing graphic interface access over TCP 3389[cite: 670].  │
+  └────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ KERBEROS (UDP/TCP 88)                                                                                               │
+  ├─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Ticket-based network authentication protocol designed to validate client identities securely over open networks.    │
+  │ ● Key Exchanges: AS-REQ/AS-REP (Authentication Service) and TGS-REQ/TGS-REP (Ticket Granting Service)[cite: 593].   │
+  │ ● Risks: Susceptible to credential guessing, AS-REP roasting, Kerberoasting, and offline ticket cracking[cite: 593].│
+  └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ LDAP / LDAPS (TCP 389 / 636)                                                                                            │
+  ├─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Hierarchical directory protocol based on the X.500 standard, used to look up user and system attributes[cite: 594, 614].│
+  │ ● Architecture: Paths are traced using unique Distinguished Names (DNs) made of specific attributes[cite: 613, 614].    │
+  │   Example DN: uid=johndoe,ou=Users,dc=example,dc=com[cite: 614].                                                        │
+  │ ● Security Profiling: Standard LDAP (Port 389) transmits credentials in cleartext via Simple Binds[cite: 579].          │
+  │   LDAPS (Port 636) encrypts directory traffic inside secure TLS tunnels[cite: 579].                                     │
+  └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+========================================================================================================================
+												[ EOF ]                                         
+========================================================================================================================
