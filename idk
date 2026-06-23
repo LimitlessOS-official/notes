@@ -1,0 +1,135 @@
+Address Types:
+Question 12
+Not complete
+Not graded
+What term is used by IPv4 and IPv6 to describe a communication where traffic is sent to one host?
+
+Answer:Question 12
+Question 13
+Not complete
+Not graded
+What term is used by IPv4 and IPv6 to describe a communication where traffic is sent to many hosts as part of a group?
+
+Answer:Question 13
+Question 14
+Not complete
+Not graded
+What term is used by IPv4 to describe a communication where traffic is sent to all hosts on a network?
+
+Answer:
+
+Subnetting:
+Blocks
+Question 1
+Not complete
+Not graded
+Class A address are used as large network blocks with 16,777,214 (224 - 2) hosts. They can be identified by it's first octet.
+
+What is the range of a Class A IP addresses in the first octet?
+Use the format of xxx-xxx
+
+Answer:Question 1
+Question 2
+Not complete
+Not graded
+Class B address are used as medium network blocks with 65.534 (216 - 2) hosts. They can be identified by it's first octet.
+
+What is the range of a Class B IP addresses in the first octet?
+Use the format of xxx-xxx
+
+Answer:Question 2
+Question 3
+Not complete
+Not graded
+Class C address are used as small network blocks with 254 (28 - 2) hosts. They can be identified by it's first octet.
+
+What is the range of a Class C IP addresses in the first octet?
+Use the format of xxx-xxx
+
+Answer:Question 3
+Question 4
+Not complete
+Not graded
+Class D addresses are not used to assign to hosts but rather for multicast addressing (one-to-many)
+
+What is the range of a Class D IP addresses in the first octet?
+Use the format of xxx-xxx
+
+Answer:Question 4
+Question 5
+Not complete
+Not graded
+Class E addresses are not used at all. They were intended for experimental use.
+
+What is the range of a Class E IP addresses in the first octet?
+Use the format of xxx-xxx
+
+Answer:Question 5
+
+Question 6
+Not complete
+Not graded
+Subnetting was invented to divide networks into smaller subnets. However they have their default starting subnet masks before any subnetting is applied.
+
+What is the default Subnet Mask of a Class A network?
+Use the format of x.x.x.x
+
+Answer:Question 6
+Question 7
+Not complete
+Not graded
+Subnetting was invented to divide networks into smaller subnets. However they have their default starting subnet masks before any subnetting is applied.
+
+What is the default Subnet Mask of a Class B network?
+Use the format of x.x.x.x
+
+Answer:Question 7
+Question 8
+Not complete
+Not graded
+Subnetting was invented to divide networks into smaller subnets. However they have their default starting subnet masks before any subnetting is applied.
+
+What is the default Subnet Mask of a Class C network?
+Use the format of x.x.x.x
+
+Answer:Question 8
+
+Question 9
+Not complete
+Not graded
+Subnetting is the process of 'borrowing' host bits of a Network mask and converting them to subnet bits. This is a uniformed process by turning on bits sequentialy from left-to-right.
+The term CIDR (Classless Inter-domain Routing) is a method to simply express a subnet mask by identifying the TOTAL number of bits turned on in the subnetmask.
+
+What is the CIDR of 255.192.0.0?
+Use the format of /xx
+
+Answer:Question 9
+Question 10
+Not complete
+Not graded
+What is the CIDR of 255.255.128.0?
+Use the format of /xx
+
+Answer:Question 10
+Question 11
+Not complete
+Not graded
+What is the CIDR of 255.255.255.252?
+Use the format of /xx
+
+Answer:Question 11
+Question 12
+Not complete
+Not graded
+What is the CIDR of 255.255.254.0?
+Use the format of /xx
+
+Answer:Question 12
+Question 13
+Not complete
+Not graded
+What is the CIDR of 255.240.0.0?
+Use the format of /xx
+
+Answer:Question 13
+
