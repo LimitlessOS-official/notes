@@ -1,96 +1,23 @@
-Question 1
-Not complete
-Not graded
-What BPF would you use to find how many SYN/ACK there are, ignoring the other flags?
+tcpdump -nn -r practice.pcap 'tcp[tcpflags] & (tcp-syn|tcp-ack) == (tcp-syn|tcp-ack)' | wc -l
 
-Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+tcpdump -nn -r practice.pcap 'ip[8] != 64' | wc -l
 
-Answer:Question 1
-Question 2
-Not complete
-Not graded
-What BPF would you use to find IP with a TTL that is not equal to 64?
+tcpdump -nn -r practice.pcap 'ip and tcp and (dst port 80 or dst port 443)' | wc -l
 
-Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+tcpdump -nn -r practice.pcap 'ip and tcp and (src port 80 or src port 443)' | wc -l
 
-Answer:Question 2
-Question 3
-Not complete
-Not graded
-What is the BPF for identifing only IPv4 destination ports 80 or 443?
+tcpdump -nn -r practice.pcap 'ip[6:2] & 0x3fff != 0' | wc -l
 
-Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+tcpdump -nn -r practice.pcap 'icmp and icmp[0] != 0 and icmp[0] != 8' | wc -l
 
-Answer:Question 3
-Question 4
-Not complete
-Not graded
-What is the BPF for identifying only IPv4 source ports 80 and 443?
+tcpdump -nn -r practice.pcap 'dst host 10.2.0.2' | wc -l
 
-Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+tcpdump -nn -r practice.pcap 'dst host 10.2.0.2' | wc -l
 
-Answer:Question 4
-Question 5
-Not complete
-Not graded
-What is the BPF for identifing all fragmented packets?
+tcpdump -nn -r practice.pcap 'tcp[tcpflags] & tcp-ack != 0' | wc -l
 
-Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+tcpdump -nn -r practice.pcap 'udp and src port 123' | wc -l
 
-Answer:Question 5
-Question 6
-Not complete
-Not graded
-What is the BPF to capture all ICMP packets that are not echo requests and replies?
+tcpdump -nn -r practice.pcap 'src host 10.1.0.2 and dst host 10.2.0.2' | wc -l
 
-Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
-
-Answer:Question 6
-Question 7
-Not complete
-Not graded
-What is the BPF to identify how many packets have been sent to 10.2.0.2?
-
-Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
-
-Answer:Question 7
-Question 8
-Not complete
-Not graded
-What is the BPF to capture all IP packets with options?
-
-Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
-
-Answer:Question 8
-Question 9
-Not complete
-Not graded
-What is the BPF to capture any traffic ACK flag set?
-
-Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
-
-Answer:Question 9
-Question 10
-Not complete
-Not graded
-What is the BPF to capture traffic coming from the NTP server?
-
-Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
-
-Answer:Question 10
-Question 11
-Not complete
-Not graded
-What is the BPF to capture traffic between source IP 10.1.0.2 and destination IP 10.2.0.2?
-
-Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
-
-Answer:Question 11
-Question 12
-Not complete
-Not graded
-What is the BPF to check for the DHCP from server(10.1.0.101)?
-
-Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
-
-Answer:Question 12
+tcpdump -nn -r practice.pcap 'udp and src host 10.1.0.101 and src port 67' | wc -l
