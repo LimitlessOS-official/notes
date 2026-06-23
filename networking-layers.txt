@@ -1,0 +1,588 @@
+===============================================================================
+LAYER 1 & LAYER 2 NETWORKING FUNDAMENTALS
+===============================================================================
+
+OBJECTIVE
+
+Understand:
+- OSI Model
+- Ethernet
+- MAC Addressing
+- VLANs
+- ARP
+- Layer 2 Attacks
+- Frame Analysis
+
+===============================================================================
+OSI MODEL
+===============================================================================
+
+LAYER 7 - APPLICATION
+
+Purpose
+- User interaction
+- Network services
+
+Examples
+- HTTP
+- HTTPS
+- DNS
+- SMTP
+
+-------------------------------------------------------------------------------
+
+LAYER 6 - PRESENTATION
+
+Purpose
+- Encryption
+- Compression
+- Data formatting
+
+Examples
+- TLS
+- SSL
+
+-------------------------------------------------------------------------------
+
+LAYER 5 - SESSION
+
+Purpose
+- Create sessions
+- Maintain sessions
+- Terminate sessions
+
+Examples
+- RPC
+- NetBIOS
+
+-------------------------------------------------------------------------------
+
+LAYER 4 - TRANSPORT
+
+PDU
+- Segment
+
+Protocols
+- TCP
+- UDP
+
+Purpose
+- End-to-end communication
+
+-------------------------------------------------------------------------------
+
+LAYER 3 - NETWORK
+
+PDU
+- Packet
+
+Protocols
+- IPv4
+- IPv6
+- ICMP
+
+Purpose
+- Routing
+
+-------------------------------------------------------------------------------
+
+LAYER 2 - DATA LINK
+
+PDU
+- Frame
+
+Protocols
+- Ethernet
+- PPP
+- 802.1Q
+
+Purpose
+- MAC addressing
+- Framing
+- Error detection
+
+-------------------------------------------------------------------------------
+
+LAYER 1 - PHYSICAL
+
+PDU
+- Bits
+
+Purpose
+- Signal transmission
+
+Examples
+- Ethernet
+- Fiber
+- Bluetooth
+- Wi-Fi
+
+===============================================================================
+PDU FLOW
+===============================================================================
+
+Application  -> Data
+Transport    -> Segment
+Network      -> Packet
+Data Link    -> Frame
+Physical     -> Bits
+
+===============================================================================
+IMPORTANT ORGANIZATIONS
+===============================================================================
+
+IETF
+- Creates RFCs
+
+Common RFCs
+- RFC 768  = UDP
+- RFC 791  = IPv4
+- RFC 792  = ICMP
+- RFC 793  = TCP
+- RFC 826  = ARP
+- RFC 2131 = DHCP
+- RFC 2460 = IPv6
+
+-------------------------------------------------------------------------------
+
+IANA
+
+Manages
+- IP addresses
+- Port numbers
+- DNS root servers
+- MAC OUIs
+- AS Numbers
+
+-------------------------------------------------------------------------------
+
+IEEE
+
+Networking Standards
+
+- 802.3  = Ethernet
+- 802.11 = Wi-Fi
+- 802.1Q = VLAN
+- 802.1X = Port Authentication
+- 802.1ad = Q-in-Q
+
+===============================================================================
+NUMBER SYSTEMS
+===============================================================================
+
+BINARY
+
+Base 2
+
+Values
+- 0
+- 1
+
+Example
+- 10101010
+
+-------------------------------------------------------------------------------
+
+DECIMAL
+
+Base 10
+
+Values
+- 0-9
+
+-------------------------------------------------------------------------------
+
+HEXADECIMAL
+
+Base 16
+
+Values
+- 0-9
+- A-F
+
+Example
+- 0xFF = 255
+
+Hex Table
+
+A = 10
+B = 11
+C = 12
+D = 13
+E = 14
+F = 15
+
+-------------------------------------------------------------------------------
+
+BASE64
+
+Character Set
+- A-Z
+- a-z
+- 0-9
+- +
+- /
+
+Padding
+- =
+
+Purpose
+- Encode binary as text
+
+===============================================================================
+LAN TOPOLOGIES
+===============================================================================
+
+BUS
+
+Pros
+- Cheap
+- Simple
+
+Cons
+- Single cable failure affects network
+
+-------------------------------------------------------------------------------
+
+STAR
+
+Pros
+- Easy management
+- Easy expansion
+
+Cons
+- Switch failure affects network
+
+-------------------------------------------------------------------------------
+
+RING
+
+Pros
+- Predictable traffic flow
+
+Cons
+- Failure can impact entire ring
+
+-------------------------------------------------------------------------------
+
+MESH
+
+Pros
+- High redundancy
+- Fault tolerant
+
+Cons
+- Expensive
+- Complex
+
+-------------------------------------------------------------------------------
+
+WIRELESS
+
+Pros
+- Mobility
+- Flexible deployment
+
+Cons
+- Interference
+- Security concerns
+
+===============================================================================
+NETWORK DEVICES
+===============================================================================
+
+HUB
+
+- Broadcasts everything
+- Single collision domain
+
+-------------------------------------------------------------------------------
+
+SWITCH
+
+- Learns MAC addresses
+- Uses CAM table
+- Separate collision domains
+
+-------------------------------------------------------------------------------
+
+REPEATER
+
+- Regenerates signal
+- Extends cable distance
+
+===============================================================================
+MAC ADDRESSING
+===============================================================================
+
+Length
+
+- 48 bits
+- 6 bytes
+- 12 hex digits
+
+-------------------------------------------------------------------------------
+
+Formats
+
+- 01:23:45:67:89:AB
+- 01-23-45-67-89-AB
+- 0123.4567.89AB
+
+-------------------------------------------------------------------------------
+
+Structure
+
+OUI
+- First 24 bits
+- Vendor portion
+
+NIC Portion
+- Last 24 bits
+- Device identifier
+
+-------------------------------------------------------------------------------
+
+UNICAST
+
+- One device
+
+-------------------------------------------------------------------------------
+
+MULTICAST
+
+- Group of devices
+
+Example
+- 01:00:5E:xx:xx:xx
+
+-------------------------------------------------------------------------------
+
+BROADCAST
+
+- All devices
+
+Address
+- FF:FF:FF:FF:FF:FF
+
+===============================================================================
+ETHERNET II FRAME
+===============================================================================
+
+Destination MAC   = 6 Bytes
+Source MAC        = 6 Bytes
+EtherType         = 2 Bytes
+Payload           = 46-1500 Bytes
+FCS               = 4 Bytes
+
+-------------------------------------------------------------------------------
+
+Common EtherTypes
+
+0x0800 = IPv4
+0x0806 = ARP
+0x86DD = IPv6
+0x8100 = VLAN
+
+===============================================================================
+SWITCH OPERATIONS
+===============================================================================
+
+MAC Learning
+
+Source MAC -> Port
+
+Stored In
+
+CAM Table
+
+-------------------------------------------------------------------------------
+
+Known Destination
+
+- Forward to correct port
+
+-------------------------------------------------------------------------------
+
+Unknown Destination
+
+- Flood frame
+
+-------------------------------------------------------------------------------
+
+Broadcast
+
+- Flood all ports
+
+===============================================================================
+SWITCHING METHODS
+===============================================================================
+
+STORE-AND-FORWARD
+
+- Reads entire frame
+- Verifies FCS
+- Slowest
+
+-------------------------------------------------------------------------------
+
+CUT-THROUGH
+
+- Reads destination MAC
+- Fastest
+- No error checking
+
+-------------------------------------------------------------------------------
+
+FRAGMENT-FREE
+
+- Reads first 64 bytes
+- Drops runt frames
+
+===============================================================================
+VLANS
+===============================================================================
+
+Standard
+
+- 802.1Q
+
+Purpose
+
+- Network segmentation
+- Smaller broadcast domains
+- Increased security
+
+-------------------------------------------------------------------------------
+
+802.1Q Tag
+
+Size
+- 4 Bytes
+
+Header Size
+- 18 Bytes Total
+
+-------------------------------------------------------------------------------
+
+TPID
+
+- 0x8100
+
+-------------------------------------------------------------------------------
+
+Valid VLAN IDs
+
+- 1 - 4094
+
+Reserved
+
+- 0
+- 4095
+
+-------------------------------------------------------------------------------
+
+VLAN TYPES
+
+Default VLAN
+- VLAN 1
+
+Data VLAN
+- User traffic
+
+Voice VLAN
+- VoIP traffic
+
+Management VLAN
+- Device management
+
+Native VLAN
+- Untagged trunk traffic
+
+===============================================================================
+Q-IN-Q
+===============================================================================
+
+Standard
+
+- 802.1ad
+
+EtherType
+
+- 0x88A8
+
+Purpose
+
+- Double VLAN tagging
+- Provider bridging
+
+===============================================================================
+LAYER 2 ATTACKS
+===============================================================================
+
+MAC SPOOFING
+
+Goal
+- Impersonate another device
+
+Mitigation
+- Port Security
+- 802.1X
+
+-------------------------------------------------------------------------------
+
+CAM TABLE OVERFLOW
+
+Goal
+- Fill CAM table
+- Force switch flooding
+
+Mitigation
+- Port Security
+
+-------------------------------------------------------------------------------
+
+ARP POISONING
+
+Goal
+- MITM attack
+
+Mitigation
+- Dynamic ARP Inspection
+
+-------------------------------------------------------------------------------
+
+VLAN HOPPING
+
+Goal
+- Access other VLANs
+
+Mitigation
+- Disable DTP
+- Secure trunks
+
+===============================================================================
+CTF / EXAM MUST KNOW
+===============================================================================
+
+IPv4 EtherType      = 0x0800
+ARP EtherType       = 0x0806
+IPv6 EtherType      = 0x86DD
+VLAN EtherType      = 0x8100
+
+Broadcast MAC       = FF:FF:FF:FF:FF:FF
+Multicast MAC       = 01:00:5E:xx:xx:xx
+
+MAC Address Length  = 48 bits
+
+Ethernet Header     = 14 Bytes
+802.1Q Header       = 18 Bytes
+
+PDU Flow
+
+Data
+ -> Segment
+ -> Packet
+ -> Frame
+ -> Bits
+===============================================================================

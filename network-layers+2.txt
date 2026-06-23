@@ -1,0 +1,561 @@
+===============================================================================
+SWITCH OPERATIONS & LAYER 2 ATTACKS
+===============================================================================
+
+SWITCH FUNCTIONS
+
+Primary Functions
+
+- Build MAC Address Table
+- Forward Ethernet Frames
+
+-------------------------------------------------------------------------------
+
+CAM TABLE
+
+CAM = Content Addressable Memory
+
+Purpose
+
+- Store MAC -> Port mappings
+- Enable fast frame forwarding
+
+Example
+
+AA:BB:CC:DD:EE:FF -> Fa0/1
+
+-------------------------------------------------------------------------------
+
+FRAME FORWARDING
+
+Known Destination MAC
+
+- Forward only to destination port
+
+Unknown Destination MAC
+
+- Flood all ports except source port
+
+Broadcast
+
+- Flood all ports except source port
+
+Multicast
+
+- Flood all ports unless IGMP Snooping or CGMP is enabled
+
+===============================================================================
+SWITCHING MODES
+===============================================================================
+
+STORE-AND-FORWARD
+
+Process
+
+- Receives entire frame
+- Verifies FCS/CRC
+- Checks for errors
+- Forwards frame
+
+Advantages
+
+- Error detection
+- Supports different interface speeds
+
+Disadvantages
+
+- Slowest switching method
+
+-------------------------------------------------------------------------------
+
+CUT-THROUGH
+
+Process
+
+- Reads destination MAC
+- Immediately forwards frame
+
+Advantages
+
+- Fastest method
+- Lowest latency
+
+Disadvantages
+
+- No error checking
+- Requires same interface speeds
+
+-------------------------------------------------------------------------------
+
+FRAGMENT-FREE
+
+Process
+
+- Reads first 64 bytes
+- Drops runt frames
+
+Advantages
+
+- Faster than Store-and-Forward
+- Prevents collision fragments
+
+-------------------------------------------------------------------------------
+
+ETHERNET MINIMUM FRAME SIZE
+
+Minimum Ethernet Frame
+
+64 Bytes
+
+Calculation
+
+46 Byte Payload
++
+18 Byte Header/Trailer
+=
+64 Bytes
+
+Frames Smaller Than 64 Bytes
+
+- Runt Frame
+- Collision Fragment
+- Dropped
+
+===============================================================================
+CAM TABLE OVERFLOW ATTACK
+===============================================================================
+
+Also Known As
+
+- MAC Flooding Attack
+
+Goal
+
+- Exhaust CAM table memory
+- Force switch to flood traffic
+
+Result
+
+- Switch behaves like a hub
+- Increased packet visibility
+- Possible MITM attack
+- Possible DoS condition
+
+-------------------------------------------------------------------------------
+
+ATTACK PROCESS
+
+1. Send thousands of fake MAC addresses
+2. CAM table fills
+3. Legitimate MAC entries removed
+4. Switch floods traffic
+5. Attacker captures packets
+
+-------------------------------------------------------------------------------
+
+MITIGATION
+
+Port Security
+
+switchport port-security
+switchport port-security maximum 1
+switchport port-security violation shutdown
+
+===============================================================================
+PORT SECURITY
+===============================================================================
+
+PURPOSE
+
+- Limit MAC addresses on ports
+- Prevent unauthorized devices
+- Mitigate MAC flooding
+
+-------------------------------------------------------------------------------
+
+CONFIGURATION
+
+switchport port-security
+
+switchport port-security maximum 1
+
+switchport port-security mac-address sticky
+
+switchport port-security violation shutdown
+
+===============================================================================
+LAYER 2 ATTACK MITIGATIONS
+===============================================================================
+
+SHUTDOWN UNUSED PORTS
+
+Purpose
+
+- Prevent unauthorized access
+
+Configuration
+
+interface fastethernet 0/1
+shutdown
+
+-------------------------------------------------------------------------------
+
+PORT SECURITY
+
+Purpose
+
+- Restrict learned MAC addresses
+- Stop MAC flooding
+
+-------------------------------------------------------------------------------
+
+IP SOURCE GUARD
+
+Purpose
+
+- Prevent IP spoofing
+
+Validation Source
+
+- DHCP Snooping Database
+
+Configuration
+
+interface fastethernet 0/1
+ip verify source
+
+-------------------------------------------------------------------------------
+
+DHCP SNOOPING
+
+Purpose
+
+- Block rogue DHCP servers
+
+Configuration
+
+ip dhcp snooping
+
+interface fastethernet 0/1
+ip dhcp snooping trust
+
+-------------------------------------------------------------------------------
+
+DYNAMIC ARP INSPECTION (DAI)
+
+Purpose
+
+- Prevent ARP Spoofing
+- Prevent MITM attacks
+
+Method
+
+- Compare ARP traffic against DHCP Snooping database
+
+Configuration
+
+ip arp inspection vlan <vlan-id>
+
+-------------------------------------------------------------------------------
+
+802.1X
+
+Purpose
+
+- Authenticate clients before network access
+
+Configuration
+
+aaa new-model
+aaa authentication dot1x default group radius
+dot1x system-auth-control
+
+-------------------------------------------------------------------------------
+
+BPDU GUARD
+
+Purpose
+
+- Prevent rogue switches
+- Prevent STP manipulation
+
+Configuration
+
+interface fastethernet 0/1
+spanning-tree bpduguard enable
+
+-------------------------------------------------------------------------------
+
+STATIC CAM ENTRIES
+
+Purpose
+
+- Manually bind MAC addresses
+- Prevent unauthorized learning
+
+===============================================================================
+VLAN HOPPING ATTACKS
+===============================================================================
+
+PURPOSE
+
+- Access traffic on other VLANs
+- Bypass Layer 3 routing controls
+
+===============================================================================
+SWITCH SPOOFING
+===============================================================================
+
+METHOD
+
+- Pretend to be a switch
+- Negotiate trunk using DTP
+
+RESULT
+
+- Gain access to trunk traffic
+- Access multiple VLANs
+
+-------------------------------------------------------------------------------
+
+MITIGATION
+
+switchport mode access
+
+switchport nonegotiate
+
+===============================================================================
+TAGGING ATTACK
+===============================================================================
+
+METHOD
+
+- Manually insert 802.1Q VLAN tag
+- Send tagged frames from access port
+
+RESULT
+
+- Traffic forwarded into another VLAN
+
+===============================================================================
+DOUBLE TAGGING ATTACK
+===============================================================================
+
+REQUIREMENTS
+
+- Knowledge of Native VLAN
+- Vulnerable switch
+
+-------------------------------------------------------------------------------
+
+PROCESS
+
+1. Add Native VLAN tag
+2. Add target VLAN tag
+3. First switch strips Native VLAN tag
+4. Second tag remains
+5. Frame enters target VLAN
+
+-------------------------------------------------------------------------------
+
+MITIGATION
+
+switch(config)# vlan dot1q tag native
+
+switchport mode access
+
+switchport nonegotiate
+
+switchport trunk native vlan 999
+
+===============================================================================
+VXLAN
+===============================================================================
+
+VXLAN
+
+Virtual Extensible LAN
+
+Purpose
+
+- Layer 2 over Layer 3
+- Large-scale network virtualization
+
+-------------------------------------------------------------------------------
+
+WHY VXLAN EXISTS
+
+Traditional VLAN Limit
+
+- 4096 VLANs maximum
+
+VXLAN Benefit
+
+- Massive scalability
+- Cloud and data center networking
+
+===============================================================================
+LLC SUBLAYER
+===============================================================================
+
+IEEE STANDARD
+
+802.2
+
+Purpose
+
+- Identify encapsulated protocol
+- Provide EtherType
+
+-------------------------------------------------------------------------------
+
+COMMON ETHERTYPES
+
+0x0800 = IPv4
+
+0x0806 = ARP
+
+0x86DD = IPv6
+
+0x8100 = 802.1Q VLAN
+
+===============================================================================
+MESSAGE STRUCTURE
+===============================================================================
+
+HEADER
+
+Contains
+
+- Source Address
+- Destination Address
+- Control Information
+
+-------------------------------------------------------------------------------
+
+DATA
+
+Contains
+
+- Payload
+
+-------------------------------------------------------------------------------
+
+TRAILER
+
+Contains
+
+- CRC
+- Error Detection Information
+
+===============================================================================
+ENCAPSULATION
+===============================================================================
+
+Application     = Data
+
+Presentation    = Data
+
+Session         = Data
+
+Transport       = Segment / Datagram
+
+Network         = Packet
+
+Data Link       = Frame
+
+Physical        = Bits
+
+-------------------------------------------------------------------------------
+
+FLOW
+
+Data
+ ->
+Segment
+ ->
+Packet
+ ->
+Frame
+ ->
+Bits
+
+===============================================================================
+CTF / EXAM MUST KNOW
+===============================================================================
+
+CAM
+
+Content Addressable Memory
+
+-------------------------------------------------------------------------------
+
+Minimum Ethernet Frame
+
+64 Bytes
+
+-------------------------------------------------------------------------------
+
+Runt Frame
+
+< 64 Bytes
+
+-------------------------------------------------------------------------------
+
+Store-and-Forward
+
+- Reads entire frame
+- Checks errors
+
+-------------------------------------------------------------------------------
+
+Cut-Through
+
+- Reads destination MAC only
+- Fastest
+
+-------------------------------------------------------------------------------
+
+Fragment-Free
+
+- Reads first 64 bytes
+
+-------------------------------------------------------------------------------
+
+Port Security
+
+switchport port-security
+
+-------------------------------------------------------------------------------
+
+DAI
+
+Dynamic ARP Inspection
+
+-------------------------------------------------------------------------------
+
+802.1X
+
+Port-based Authentication
+
+-------------------------------------------------------------------------------
+
+VLAN Hopping Methods
+
+- Switch Spoofing
+- Tagging
+- Double Tagging
+
+-------------------------------------------------------------------------------
+
+Common EtherTypes
+
+IPv4 = 0x0800
+
+ARP  = 0x0806
+
+IPv6 = 0x86DD
+
+VLAN = 0x8100
+
+===============================================================================

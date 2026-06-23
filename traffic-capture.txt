@@ -1,0 +1,174 @@
+========================================================================================================================
+                                     OSI LAYER 2 - 7: TRAFFIC CAPTURE & ANALYSIS NOTES                                  
+========================================================================================================================
+
++----------------------------------------------------------------------------------------------------------------------+
+| 4.0 TERMINAL LEARNING OBJECTIVE (TLO)                                                                                |
++----------------------------------------------------------------------------------------------------------------------+
+| Given applicable references, Capture-the-Flag (CTFd) challenges, and access to the appropriate virtual training     |
+| environment, the student will examine the network tools used for network traffic analysis, monitoring, and           |
+| troubleshooting to achieve 70% or higher on the Basic Analysis CTFd challenges[cite: 1].                               |
++----------------------------------------------------------------------------------------------------------------------+
+
+  TRAFFIC ANALYSIS CORE STACK
+ ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+  [TOOL / METHOD]   [INTERFACE STYLE]              [FUNCTIONAL PROFILE & CAPABILITIES]
+  ╔═════════════════╤══════════════════════════════╤════════════════════════════════════════════════════════════════╗
+  ║ TCPDump         ║ Command-Line (CLI)           ║ Real-time raw packet capture and on-the-fly live analysis[cite: 3].    ║
+  ║                 ║                              ║ Indispensable for tracking retransmissions and active loops[cite: 39, 41].║
+  ╟─────────────────┼──────────────────────────────┼────────────────────────────────────────────────────────────────╢
+  ║ Wireshark       ║ Graphical (GUI)              ║ Deep packet dissection, advanced protocol decoding, and visual ║
+  ║                 ║                              ║ anomaly detection[cite: 5, 6]. Extensible via scripting modules[cite: 7].  ║
+  ╟─────────────────┼──────────────────────────────┼────────────────────────────────────────────────────────────────╢
+  ║ Berkeley Packet ║ Low-Level Kernel Engine      ║ Highly optimized, kernel-level packet injection and traffic    ║
+  ║ Filter (BPF)    ║                              ║ restriction framework[cite: 8]. Drops unwanted traffic early[cite: 129].     ║
+  ╟─────────────────┼──────────────────────────────┼────────────────────────────────────────────────────────────────╢
+  ║ Passive OS Finger║ Passive Analysis System     ║ Reconstructs host metadata and platform configurations securely║
+  ║ printing (p0f)  ║                              ║ without sending outbound probes to remote servers.            ║
+  ╚═════════════════╧══════════════════════════════╧════════════════════════════════════════════════════════════════╝
+
+
+========================================================================================================================
+ 4.1 PACKET SNIFFING ESSENTIALS & ECOSYSTEM
+========================================================================================================================
+
+ ─────────── [ 4.1 & 4.1.2 OPERATIONAL SPECTRUM & PRIVILEGES ] ───────────
+
+  ● Core Mechanism: Gathering, collecting, and capturing RAW signals on a physical network medium (twisted pair, 
+    fiber, or wireless links)[cite: 15]. Plaintext streams can be fully reassembled and read by the collector[cite: 16].
+  ● Architectural Bounds: Restricted entirely to traffic hitting the local shared network segment[cite: 18]. Remote 
+    or unrouted traffic must be explicitly diverted via Network Taps, SPAN/Mirror ports, or MitM schemes[cite: 19, 571].
+  ● System Barriers: Bypassing the host OS network stack to grab raw frames directly off the Network Interface Card 
+    (NIC) mandates root or administrative kernel privileges on the target system[cite: 20, 564, 599].
+
+ ─────────── [ 4.1.1 SYSTEM PACKET CAPTURE LIBRARIES ] ───────────
+
+  ● libpcap (Unix/Linux/macOS)
+    ├─ History        : Created in 1994 as a standalone port of tcpdump's low-level engine[cite: 21, 22].
+    ├─ Purpose        : System-independent C/C++ API for low-level packet capture and injection[cite: 25, 26, 28].
+    └─ Dependencies   : Serves as the core engine powering TCPDump, Wireshark, and Snort[cite: 27].
+
+  ● WinPcap (Legacy Windows Framework)
+    ├─ Development    : Windows translation of libpcap maintained by Riverbed Technology[cite: 30].
+    └─ Lifecycle      : Deprecated. Final release (v4.1.3) dropped on March 8, 2013; lacks modern signed drivers[cite: 32, 33].
+
+  ● Npcap (Modern Windows Architecture)
+    ├─ Origin         : Actively maintained framework engineered by the Nmap project[cite: 34].
+    ├─ Functionality  : Supports full loopback traffic sniffing and monitor-mode 802.11 wireless captures[cite: 35, 36].
+    └─ Compatibility  : Built natively for modern platforms across Windows 7 through Windows 11 environments[cite: 37].
+
+
+ ─────────── [ 4.1.2.1 SOFTWARE NIC MODES ] ───────────
+
+  [ NON-PROMISCUOUS MODE (DEFAULT) ] [cite: 97]
+    ● The interface processes only packets explicitly matching its own host MAC address[cite: 98].
+    ● Broadcast frames and joined Multicast destination group traffic are also parsed safely[cite: 99].
+    ● Examples: Standard web browsing sessions, curl retrievals, or raw ping utilities[cite: 100, 101].
+
+  [ PROMISCUOUS MODE (CAPS-ENABLED) ] [cite: 102]
+    ● Interface completely overrides standard address checking, grabbing all traffic hitting the segment[cite: 102].
+    ● Requires root access to transition; can be constrained by hardware design or vendor firmware drivers[cite: 102, 103].
+    ● Examples: Active Wireshark monitoring, TCPDump capturing, and Kismet wireless inspection[cite: 104, 105, 107].
+
+
+ ─────────── [ 4.1.2.2 NETWORK SOCKET DESCRIPTORS ] ───────────
+
+    ┌──────────────────────────────────────────────────┐      ┌──────────────────────────────────────────────────┐
+    │               USER SPACE SOCKETS                 │      │               KERNEL SPACE SOCKETS               │
+    └──────────────────────────────────────────────────┘      └──────────────────────────────────────────────────┘
+      → STREAM SOCKETS (TCP, SCTP, Bluetooth) [cite: 108]       → RAW SOCKETS (Direct Header Control) [cite: 113]
+        Connection-oriented, sequenced byte streams[cite: 109].  Bypasses transport logic formatting entirely[cite: 113].
+      → DATAGRAM SOCKETS (UDP) [cite: 110]                       Headers remain intact up the stack[cite: 114].
+        Connectionless, low-overhead transport[cite: 110].     → IMPLEMENTATION CONTEXTS [cite: 116, 117]
+      → RUNTIME EXAMPLES [cite: 112]                             ICMP ping engines, OSPF, and EIGRP routing[cite: 116, 117].
+        Web browsers, FTP clients, netcat sockets[cite: 112].    Custom flag tools like Hping & Nmap scans[cite: 118].
+        `nc 172.16.82.106 22` or ephemeral setups[cite: 112].    Well-known port binding (0-1023)[cite: 121].
+
+
+========================================================================================================================
+ 4.1.2.3 THE LOW-LEVEL CAPTURE PIPELINE (KERNEL TO USER SPACE)
+========================================================================================================================
+
+  1. THE WIRE ──────► [ NIC IN PROMISCUOUS MODE ] [cite: 122]
+                       │ Captures raw binary patterns passing across the medium[cite: 122].
+                       ▼
+  2. KERNEL SPACE ──► [ RAW SOCKET GENERATION ] [cite: 124]
+                       │ Preserves original packet layouts and transport headers unmodified[cite: 124].
+                       ▼
+                      [ SO_ATTACH_FILTER / SO_ATTACH_BPF ] [cite: 126]
+                       │ Runs root-defined criteria arrays inside kernel space[cite: 127].
+                       ├─ Filter Returns 0      : Packet is instantly dropped[cite: 129].
+                       ├─ Filter Returns < Length: Packet is truncated to the specified boundary value[cite: 130].
+                       └─ Filter Returns > Length: Packet moves forward completely unhindered[cite: 131].
+                       ▼
+  3. USER SPACE ────► [ LIBPCAP LIBRARY LAYER ] ───► [ ANALYSIS APPLICATION ] (Wireshark/TCPDump) [cite: 132]
+                       Receives filtered buffers and translates binary frames into human-readable data[cite: 132].
+
+
+========================================================================================================================
+ 4.2 DETAILED TCPDUMP PRIMITIVES & OPERATIONAL OPTIONS
+========================================================================================================================
+
+ ─────────── [ 4.2.1.1 PRIMITIVE QUALIFIERS MAP ] ───────────
+
+  ● TYPE QUALIFIERS : Identifies the category of target resource requested (`host`, `net`, `port`, `portrange`)[cite: 170, 171].
+                      *Fallback:* If omitted, `host` is assumed by the interpretation engine[cite: 172].
+  ● DIR QUALIFIERS  : Pinpoints directional transmission boundaries (`src`, `dst`, `src or dst`, `src and dst`)[cite: 173].
+                      *Fallback:* If omitted, `src or dst` logic is universally applied[cite: 175].
+  ● PROTOCOLS       : Scopes execution to specific protocol sets (`ether`, `arp`, `ip`, `icmp`, `tcp`, `udp`)[cite: 177].
+                      *Fallback:* If omitted, all types matching the chosen qualifier are tracked[cite: 178].
+
+ ─────────── [ 4.2.1.2 CORE RUNTIME SWITCHES ] ───────────
+
+  ● `-A`  : Renders the frame payload strictly as ASCII characters for data extraction[cite: 179].
+  ● `-D`  : Enumerates all available host interfaces equipped for packet capture[cite: 180, 181].
+  ● `-i`  : Dictates target interface selection (e.g., `-i eth0`); defaults to `eth0` if missing[cite: 183, 184].
+  ● `-e`  : Prints layer-2 data-link headers instead of showing just the inner payload encapsulation[cite: 184, 185].
+  ● `-X`  : Outputs frame data side-by-side in both HEX and ASCII format[cite: 185, 186].
+  ● `-XX` : Displays packet details in HEX and ASCII while forcing rendering of the Ethernet header link block[cite: 186].
+  ● `-v`  : Boosts output verbosity to expose TTL values, IPIDs, options, and error integrity checks[cite: 187, 188].
+  ● `-n`  : Suppresses DNS resolution, printing raw IP addresses and numeric port designations[cite: 188].
+  ● `-w`  : Streams raw captured packets directly out into a standardized payload output file[cite: 187].
+  ● `-r`  : Parses and reads frames from a previously recorded traffic log[cite: 187].
+
+ ─────────── [ LOGICAL & SYNTAX REQUISITES ] ───────────
+
+  ● Operators: Concatenation (`and` / `&&`), Alteration (`or` / `||`), and Negation (`not` / `!`)[cite: 192, 193, 194].
+  ● Shell Escaping: Enclose complex filters inside single or double quotes to prevent shell execution errors[cite: 199, 200].
+  ● Precise Practical Filter Construction Examples:
+    ├─ Simple HTTP Tracking       : `tcpdump port 80 -vn` [cite: 189]
+    ├─ Multi-Port Shell Match     : `tcpdump 'port 80 or 22' -vn` [cite: 199]
+    ├─ ICMP Echo Request Capture  : `tcpdump 'icmp[icmptype] = icmp-echo'` [cite: 202]
+    ├─ TCP Lifecycle Boundary     : `tcpdump 'tcp[tcpflags] & (tcp-syn|tcp-fin) != 0'` [cite: 208]
+    └─ Complex Network Exception  : `tcpdump "(src net 10.1.0.0/24 && (dst net 10.3.0.0/24 || dst host 10.2.0.3) && (! dst host 10.1.0.3))" -vn` [cite: 200]
+
+
+========================================================================================================================
+ APPENDIX: MODERN LINUX NIC DEVICE NAMING HIERARCHY (SYSTEMD) [cite: 158, 159]
+========================================================================================================================
+
+  When predictable interface configurations are enabled via systemd, naming defaults follow this strict priority order:
+
+   SCHEME 1: Motherboard Index Mapping
+               ├─ Pattern: `enoX` (e.g., `eno1`)[cite: 159].
+               └─ Source : Extracts firmware/BIOS index values for onboard components[cite: 159].
+  
+   SCHEME 2: Hotplug PCIe Location Mapping
+               ├─ Pattern: `ensX` (e.g., `ens2`)[cite: 160].
+               └─ Source : Pulls index numbers from hotplug slots[cite: 160].
+  
+   SCHEME 3: Physical Bus/Connector Topology
+               ├─ Pattern: `enpXsY` (e.g., `enp5s1`)[cite: 160, 161].
+               └─ Source : Traces the physical hardware slot location on the PCI bus layout[cite: 160].
+  
+   SCHEME 4: Hardware MAC Address Mapping
+               ├─ Pattern: `enxMACADDRESS` (e.g., `enx78e7d1ea46da`)[cite: 161].
+               └─ Source : Available for explicit deployment if manual interface indexing is requested[cite: 161].
+  
+  ️ SCHEME 5: Traditional Kernel Fallback
+               ├─ Pattern: `ethX` (e.g., `eth0`)[cite: 163].
+               └─ Source : Activated only if all predictable tracking engines fail to identify the card[cite: 163].
+
+========================================================================================================================
+                                             [ COMPLETED TRAFFIC ANALYSIS SHEET ]                                         
+========================================================================================================================
