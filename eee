@@ -1,0 +1,96 @@
+Question 1
+Not complete
+Not graded
+What BPF would you use to find how many SYN/ACK there are, ignoring the other flags?
+
+Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+
+Answer:Question 1
+Question 2
+Not complete
+Not graded
+What BPF would you use to find IP with a TTL that is not equal to 64?
+
+Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+
+Answer:Question 2
+Question 3
+Not complete
+Not graded
+What is the BPF for identifing only IPv4 destination ports 80 or 443?
+
+Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+
+Answer:Question 3
+Question 4
+Not complete
+Not graded
+What is the BPF for identifying only IPv4 source ports 80 and 443?
+
+Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+
+Answer:Question 4
+Question 5
+Not complete
+Not graded
+What is the BPF for identifing all fragmented packets?
+
+Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+
+Answer:Question 5
+Question 6
+Not complete
+Not graded
+What is the BPF to capture all ICMP packets that are not echo requests and replies?
+
+Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+
+Answer:Question 6
+Question 7
+Not complete
+Not graded
+What is the BPF to identify how many packets have been sent to 10.2.0.2?
+
+Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+
+Answer:Question 7
+Question 8
+Not complete
+Not graded
+What is the BPF to capture all IP packets with options?
+
+Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+
+Answer:Question 8
+Question 9
+Not complete
+Not graded
+What is the BPF to capture any traffic ACK flag set?
+
+Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+
+Answer:Question 9
+Question 10
+Not complete
+Not graded
+What is the BPF to capture traffic coming from the NTP server?
+
+Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+
+Answer:Question 10
+Question 11
+Not complete
+Not graded
+What is the BPF to capture traffic between source IP 10.1.0.2 and destination IP 10.2.0.2?
+
+Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+
+Answer:Question 11
+Question 12
+Not complete
+Not graded
+What is the BPF to check for the DHCP from server(10.1.0.101)?
+
+Using only BPFs, create your syntax and read from the practice.pcap to identify the number of packets that match.
+
+Answer:Question 12
