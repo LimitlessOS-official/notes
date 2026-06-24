@@ -1,0 +1,171 @@
+===============================================================================
+                       BPF LOW-LEVEL FILTER REFERENCE SHEET
+===============================================================================
+
+1. THE BPF FILTER BLUEPRINT
+-------------------------------------------------------------------------------
+Every byte-matching filter follows this exact formula:
+
+   Protocol[Offset:Size] & Mask = TargetValue
+
+   * Protocol    = The header layer (ip, ip6, tcp, udp)
+   * [Offset]    = The exact byte number where the field starts (starts at 0)
+   * [:Size]     = How many bytes to read. 
+                   - Leave blank to read 1 byte (8 bits)
+                   - Use :2 to read a 2-byte block (16 bits), standard for ports
+   * & Mask      = (Optional) Stencil used to isolate individual flags/bits
+   * = Value     = The final decimal number you want to match
+
+
+2. PROTOCOL FIELD OFFSET REGISTRY
+-------------------------------------------------------------------------------
+Use these exact offsets to build your rules:
+
+   PROTOCOL  FIELD NAME           BPF SYNTAX   SIZE     COMMON USE CASE
+   ip        Total Packet Length  ip[2:2]      2 Bytes  Match sizes (e.g. ip[2:2]>576)
+   ip        Flags / Frag Offset  ip[6]        1 Byte   Isolate DF or MF bits
+   ip        Time to Live (TTL)   ip[8]        1 Byte   Match hop limits (e.g. ip[8]<=64)
+   ip        Next Protocol Type   ip[9]        1 Byte   Detect UDP (17) or TCP (6)
+   
+   ip6       Next Header Type     ip6[6]       1 Byte   Detect UDP (17) or TCP (6)
+   ip6       Hop Limit (TTL)      ip6[7]       1 Byte   Match IPv6 hop limits (ip6[7]<=64)
+   
+   tcp       Source Port          tcp[0:2]     2 Bytes  Filter custom source ports
+   tcp       Destination Port     tcp[2:2]     2 Bytes  Filter custom destination ports
+   tcp       Control Flags        tcp[13]      1 Byte   Isolate SYN, ACK, RST, FIN
+   
+   udp       Source Port          udp[0:2]     2 Bytes  Filter custom UDP source ports
+
+
+3. TCP FLAG BIT VALUES (tcp[13])
+-------------------------------------------------------------------------------
+To match a combination of specific flags, add their math values together:
+
+   FLAG NAME   BINARY WEIGHT VALUE
+   FIN         1
+   SYN         2
+   RST         4
+   PSH         8
+   ACK         16
+   URG         32
+
+   Examples:
+   * Match ONLY ACK and RST set: 16 + 4 = 20  ->  tcp[13]=20
+   * Match ONLY ACK and FIN set: 16 + 1 = 17  ->  tcp[13]=17
+   * Match ONLY SYN set:                      ->  tcp[13]=2
+
+===============================================================================
+BPF BYTE-OFFSET HEADER MAP
+===============================================================================
+
+-------------------------------------------------------------------------------
+1. THE IPv4 HEADER BLUEPRINT (Each block represents 1 Byte)
+-------------------------------------------------------------------------------
+ [0] Version/IHL  │ [1] Type of Service │ [2] Total Length    │ [3] Total Length
+──────────────────┼─────────────────────┼─────────────────────┼────────────────
+ [4] ID Number    │ [5] ID Number       │ [6] Flags/Frag Off  │ [7] Frag Offset
+──────────────────┼─────────────────────┼─────────────────────┼────────────────
+ [8] TTL (Hop)    │ [9] Protocol Type   │ [10] Header Checksum│ [11] Header Checksum
+──────────────────┼─────────────────────┼─────────────────────┼────────────────
+ [12] Source IP   │ [13] Source IP      │ [14] Source IP      │ [15] Source IP
+──────────────────┼─────────────────────┼─────────────────────┼────────────────
+ [16] Dest IP     │ [17] Dest IP        │ [18] Dest IP        │ [19] Dest IP
+
+ * Crucial Offsets to use:
+   ip[2:2] = Total Packet Length (Reads 2 bytes)
+   ip[6]   = Fragmentation Flags (DF bit is worth 64)
+   ip[8]   = Time to Live (TTL)
+   ip[9]   = Inner Protocol Type (TCP = 6, UDP = 17)
+   
+ *** [1] Type of Service == DSCP == Differentiated Services Code Point ***
+ 
+ Switch Positions:   [1st]  [2nd]  [3rd]  [4th]  [5th]  [6th]  [7th]  [8th]
+ Math Weights:        128     64     32     16      8      4      2      1
+
+ * ip[6]&128=128 checks if the "Evil bit" is set *
+ * ip[16:4]=0x0a0a0a0a&&tcp[13]=0 captures TCP null scan to 10.10.10.10 *
+ 
+ Windows uses type 1 (icmp) for traceroute so ip[9]=1
+ Linux uses type 17 (high-port udp) for traceroute so ip[9]=17
+ 
+-------------------------------------------------------------------------------
+2. THE TCP HEADER BLUEPRINT (Each block represents 1 Byte)
+-------------------------------------------------------------------------------
+ [0] Source Port  │ [1] Source Port     │ [2] Dest Port       │ [3] Dest Port
+──────────────────┼─────────────────────┼─────────────────────┼────────────────
+ [4] Sequence Num │ [5] Sequence Num    │ [6] Sequence Num    │ [7] Sequence Num
+──────────────────┼─────────────────────┼─────────────────────┼────────────────
+ [8] Ack Number   │ [9] Ack Number      │ [10] Ack Number     │ [11] Ack Number
+──────────────────┼─────────────────────┼─────────────────────┼────────────────
+ [12] Data Offset │ [13] Control Flags  │ [14] Window Size    │ [15] Window Size
+
+ * Crucial Offsets to use:
+   tcp[0:2]  = Source Port (Reads 2 bytes)
+   tcp[2:2]  = Destination Port (Reads 2 bytes)
+   tcp[13]   = TCP Flags (FIN=1, SYN=2, RST=4, PSH=8, ACK=16, URG=32)
+
+
+-------------------------------------------------------------------------------
+3. THE UDP HEADER BLUEPRINT (Each block represents 1 Byte)
+-------------------------------------------------------------------------------
+ [0] Source Port  │ [1] Source Port     │ [2] Dest Port       │ [3] Dest Port
+──────────────────┼─────────────────────┼─────────────────────┼────────────────
+ [4] Length       │ [5] Length          │ [6] Checksum        │ [7] Checksum
+
+ * Crucial Offsets to use:
+   udp[0:2]  = Source Port (Reads 2 bytes)
+   udp[2:2]  = Destination Port (Reads 2 bytes)
+
+
+-------------------------------------------------------------------------------
+4. QUICK REFRESHER ON THE SIZE INDEX: [offset:size]
+-------------------------------------------------------------------------------
+ * If a field fits inside ONE single box (like TTL or TCP Flags):
+   -> Use only the offset number. Example: tcp[13]
+
+ * If a field spans ACROSS MULTIPLE boxes (like Ports or Lengths):
+   -> Specify the starting box followed by ':2' to read both. Example: tcp[0:2]
+   
+===============================================================================
+                     BPF 802.1Q (VLAN) HEADER BLUEPRINT
+===============================================================================
+
+When a packet is tagged with a VLAN, a 4-byte header is injected directly 
+BEFORE the IP header.
+
+  [0] Protocol Type (0x8100) │ [1] Protocol Type │ [2] Priority/CFI/VLAN ID │ [3] VLAN ID
+─────────────────────────────┼───────────────────┼──────────────────────────┼───────────────
+
+ * Crucial Offsets to use:
+   vlan[2:2] = Focuses on the 2-byte block containing Priority, CFI, and VLAN ID flags.
+   
+   Because the actual VLAN ID only occupies the last 12 bits of that 2-byte block,
+   we have to use a bitmask stencil to wipe away the Priority and CFI bits:
+   
+   Syntax to match a specific VLAN ID:
+   vlan[2:2]&4095=YourVLANIDNumber
+   
+===============================================================================
+                BPF ETHERNET (LAYER 2) HEADER BLUEPRINT
+===============================================================================
+
+The Ethernet header is the absolute beginning of the packet. It is exactly 
+14 bytes long before the IP header or VLAN tags start.
+
+ [0] Dest MAC     │ [1] Dest MAC     │ [2] Dest MAC     │ [3] Dest MAC
+──────────────────┼──────────────────┼──────────────────┼────────────────
+ [4] Dest MAC     │ [5] Dest MAC     │ [6] Source MAC   │ [7] Source MAC
+──────────────────┼──────────────────┼──────────────────┼────────────────
+ [8] Source MAC   │ [9] Source MAC   │ [10] Source MAC  │ [11] Source MAC
+──────────────────┼──────────────────┼──────────────────┼────────────────
+ [12] EtherType   │ [13] EtherType   │  <-- [14] This is where Layer 3 starts!
+
+ * Crucial Offsets to use:
+   ether[12:2] = The 2-byte EtherType field. This tells the system what 
+                 protocol is hidden inside the Ethernet envelope.
+
+ * Common EtherType Magic Decimal Values:
+   = 2048   (0x0800 in Hex) -> Standard IPv4 Packet inside
+   = 34525  (0x86DD in Hex) -> Standard IPv6 Packet inside
+   = 2054   (0x0806 in Hex) -> ARP Packet inside
+   = 33024  (0x8100 in Hex) -> 802.1Q VLAN Tagged Packet inside
