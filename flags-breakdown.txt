@@ -1,0 +1,85 @@
+===============================================================================
+               THE MASTER BPF SWITCHBOARD & BITMASK TOOLKIT
+===============================================================================
+
+Every individual byte block contains 8 tiny switches (bits). 
+Depending on which switch is on, it adds a specific value to that box:
+
+  Switch Position:    [1st]   [2nd]   [3rd]   [4th]   [5th]   [6th]   [7th]   [8th]
+  Bit Math Weight:     128      64      32      16       8       4       2       1
+
+-------------------------------------------------------------------------------
+1. THE LAYER 2 ETHERNET SWITCHBOARD (Start of Packet)
+-------------------------------------------------------------------------------
+ * Target Field: The 2-byte EtherType field -> ether[12:2]
+ * Common Decimal Targets:
+   = 2048   -> IPv4 traffic inside
+   = 2054   -> ARP traffic inside
+   = 33024  -> 802.1Q VLAN Tagged traffic inside
+   = 34525  -> IPv6 traffic inside
+
+
+-------------------------------------------------------------------------------
+2. THE LAYER 2.5 VLAN TAG SWITCHBOARD (Injected before Layer 3)
+-------------------------------------------------------------------------------
+ * Target Field: Priority + CFI + VLAN ID -> vlan[2:2]
+ * The Problem: The VLAN ID only owns the last 12 bits of this 2-byte block.
+ * The Stencil: Use bitmask &4095 to clear the first 4 priority switches.
+ * Master Formula: 
+   vlan[2:2]&4095=YourVLANIDNumber
+
+
+-------------------------------------------------------------------------------
+3. THE LAYER 3 IPv4 SWITCHBOARDS
+-------------------------------------------------------------------------------
+ * TYPE OF SERVICE / DSCP BYTE -> ip[1]
+   - The Problem: DSCP only owns the first 6 switches (128 + 64 + 32 + 16 + 8 + 4 = 252).
+   - The Stencil: Use bitmask &252 to turn off the last 2 ECN switches.
+   - The Multiplier: Multiply Moodle's desired DSCP value by 4.
+   - Master Formula: ip[1]&252=(DSCP_Value * 4)
+
+ * TIME TO LIVE (TTL) BYTE -> ip[8]
+   - Fits in a single byte. No bitmasks or multipliers needed.
+   - Master Formula: ip[8]=Value (e.g., ip[8]=1 for traceroute starts)
+
+ * PROTOCOL TYPE BYTE -> ip[9]
+   - Fits in a single byte. Identifies what is inside Layer 4.
+   - Common Decimal Targets:
+     = 1  -> ICMP (Windows traceroute / Ping)
+     = 6  -> TCP
+     = 17 -> UDP (Linux traceroute / DNS)
+
+
+-------------------------------------------------------------------------------
+4. THE LAYER 4 TCP SWITCHBOARDS
+-------------------------------------------------------------------------------
+ * SOURCE PORT      -> tcp[0:2]  (Spans 2 bytes, tracks traffic origin)
+ * DESTINATION PORT -> tcp[2:2]  (Spans 2 bytes, tracks service target, e.g., =53 for DNS)
+
+ * THE TCP FLAGS BYTE -> tcp[13]
+   - Out of the 8 switches in this box, the last 6 are your connection flags:
+     [Position]  [3rd]  [4th]  [5th]  [6th]  [7th]  [8th]
+     [Flag]       URG    ACK    PSH    RST    SYN    FIN
+     [Weight]      32     16      8      4      2      1
+
+   - Strict Matches (Checks for ONLY these flags being on using '='):
+     tcp[13]=2   -> Pure SYN (Client connection initiation)
+     tcp[13]=18  -> SYN-ACK (Server connection acceptance)
+     tcp[13]=16  -> Pure ACK (Standard payload/handshake completion)
+     tcp[13]=4   -> Pure RST (Connection error reset)
+     tcp[13]=1   -> Pure FIN (Polite connection teardown request)
+     tcp[13]=17  -> FIN-ACK (Teardown acknowledgment)
+
+*** ACK+RST = 20 (Closed ports) ***
+
+   - Stencil Matches (Checks if a flag is on REGARDLESS of other flags using '&'):
+     tcp[13]&2=2 -> Finds ANY packet containing a SYN flag (matches both 2 and 18)
+     tcp[13]&1=1 -> Finds ANY packet containing a FIN flag
+
+*** URG flag not set and URG pointer has value ***
+	tcp[13]&32=0&&tcp[18:2]>0
+-------------------------------------------------------------------------------
+5. THE LAYER 4 UDP SWITCHBOARDS
+-------------------------------------------------------------------------------
+ * SOURCE PORT      -> udp[0:2]  (Spans 2 bytes)
+ * DESTINATION PORT -> udp[2:2]  (Spans 2 bytes, e.g., =53 for DNS)
