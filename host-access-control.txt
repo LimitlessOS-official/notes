@@ -1,0 +1,136 @@
+================================================
+				filtering tools
+================================================
+
+ipfwadm:
+	-linux 1.2
+
+
+ipchains
+	-linux 2.2
+
+
+iptables                  ____
+	-linux 2.4				  |
+							  |
+                              |  we'll be using these 2
+nftables                      |
+	-linux 3.13           ____|
+	
+================================================
+				iptables syntax
+================================================
+
+-s                     _  Source IP/subnet (e.g., -s 192.168.1.50)
+-d                      | Destination IP/subnet (e.g., -d 8.8.8.8)
+[-t filter]             | Packet Filtering (Default table, omit "-t mangle")
+-p tcp (or -p udp)      | Matches protocol (Must split TCP and UDP into separate rules)
+--dport                 | Matches destination port
+--sport                _| Matches source port
+
+-m state --state ESTABLISHED   -> Stateful Firewall (Matches valid, active connections)
+
+------------------------------------------------
+e.g commands
+------------------------------------------------
+iptables -A INPUT -s 192.168.1.50 -d 10.0.0.5 -p tcp --dport 22 ``` -m state --state ESTABLISHED -j ACCEPT ```
+** filters tcp traffic to 10.0.0.5 on port 22 from 192.168.1.50 **
+
+iptables -A INPUT -s 192.168.1.50 -d 10.0.0.5 -p udp --dport 53 ``` -m state --state ESTABLISHED -j ACCEPT ```
+** filters udp traffic to 10.0.0.5 on port 53 from 192.168.1.50 **
+
+``` -m state --state ESTABLISHED -j ACCEPT ```
+** Allows the traffic ONLY if the connection is already open and active **
+
+================================================
+                nftables syntax
+================================================
+
+ip saddr               _  Source IP/subnet (e.g., ip saddr 192.168.1.50)
+ip daddr                | Destination IP/subnet (e.g., ip daddr 8.8.8.8)
+table ip filter         | Packet filtering table (must exist before adding chains/rules)
+tcp (or udp)            | Matches protocol (Must split TCP and UDP into separate rules)
+tcp dport               | Matches TCP destination port
+udp dport               | Matches UDP destination port
+tcp sport               | Matches TCP source port
+udp sport              _| Matches UDP source port
+
+ct state established    -> Stateful Firewall (Matches valid, active connections)
+
+------------------------------------------------
+e.g commands
+------------------------------------------------
+nft add rule ip filter input ip saddr 192.168.1.50 ip daddr 10.0.0.5 tcp dport 22 ``` ct state established accept ```
+** filters tcp traffic to 10.0.0.5 on port 22 from 192.168.1.50 **
+
+nft add rule ip filter input ip saddr 192.168.1.50 ip daddr 10.0.0.5 udp dport 53 ``` ct state established accept ```
+** filters udp traffic to 10.0.0.5 on port 53 from 192.168.1.50 **
+
+``` ct state established accept ```
+** Allows the traffic ONLY if the connection is already open and active **
+
+================================================
+				  linux hooks
+================================================
+
+------------------------------------------------
+system startup/shutdown
+------------------------------------------------
+/etc/rc.local for custom commands at startup
+/etc/rc.d/* directories for custom init scripts
+------------------------------------------------
+
+------------------------------------------------
+kernel
+------------------------------------------------
+Module loading/unloading: insmod, rmmod, modprobe
+/etc/modprobe.d/ directory for module config
+
+------------------------------------------------
+shell startup
+------------------------------------------------
+.bashrc, .bash_profile, .profile for shell init
+.zshrc, .zprofile for Zsh shell init
+
+------------------------------------------------
+desktop env
+------------------------------------------------
+GNOME/KDE/Xfce startup and logout scripts
+~/.config/autostart for user-level startup apps
+
+------------------------------------------------
+package management
+------------------------------------------------
+apt, yum, dnf for pkg installation/removal
+/etc/apt/apt.conf.d/ , /etc/yum/pluginconf.d/ for pkg manager config/autostart
+
+------------------------------------------------
+udev rules
+------------------------------------------------
+/etc/udev/rules.d/ for defining rules for dev events
+/lib/udev/rules.d/ for sys wide dev rules
+
+------------------------------------------------
+cron jobs
+------------------------------------------------
+/etc/cron.d/ , /etc/cron.daily/ , etc. for schtasks
+crontab -e to edit user cron jobs (-l to list)
+
+------------------------------------------------
+git
+------------------------------------------------
+git hooks (pre-commit, post-merge, commit, push, merge, for schtasks
+located in .git/hooks/ dir of a Git repo
+
+------------------------------------------------
+ssh
+------------------------------------------------
+~/.ssh/rc for SSH client-side scripts
+located /etc/ssh/sshd_config for SSH server-side conf
+
+------------------------------------------------
+app config
+------------------------------------------------
+conf files (e.g: /etc/ssh/sshd_config , /etc/nginx/nginx.conf) for app specific settings
+
+================================================
