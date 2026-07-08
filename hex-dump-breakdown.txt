@@ -1,0 +1,58 @@
+ffff ffff ffff 0018 73de 57c1 8100 007b
+0806 0001 0800 0604 0001 0018 73de 57c1
+c0a8 7b02 0000 0000 0000 c0a8 7b01 0000
+0000 0000 0000 0000 0000 0000 0000 0000
+
+========================================================================================================================
+HEX DUMP ANALYSIS: ARP FRAME OVER VLAN 123
+─────────── [ LAYER 2 ETHERNET II & 802.1Q TAGGING ] ───────────
+
+● Destination MAC Address : ffff ffff ffff
+└─ Frame Boundary         : Broadcast address targeting all nodes on the local broadcast domain.
+
+● Source MAC Address      : 0018 73de 57c1
+└─ Frame Boundary         : Hardware address belonging to the originating host.
+
+● Tag Protocol ID (TPID)  : 8100
+└─ Frame Boundary         : Specifies an IEEE 802.1Q Virtual LAN (VLAN) tagged frame.
+
+● Tag Control Info (TCI)   : 007b
+├─ Binary Translation     : 0000 0000 0111 1011
+└─ Extraction Matrix      : VLAN Identifier parsed as 0x07b which decodes to VLAN ID 123.
+
+● EtherType Descriptor    : 0806
+└─ Core Identifier        : Directs the underlying payload data to the ARP module.
+
+─────────── [ LAYER 3 ADDRESS RESOLUTION PROTOCOL (ARP) STRUCTURE ] ───────────
+
+● Hardware Type (HTYPE)   : 0001
+└─ Structure Definition   : Evaluates to Ethernet network layer architecture.
+
+● Protocol Type (PTYPE)   : 0800
+└─ Structure Definition   : Explicitly maps the underlying network layer to IPv4.
+
+● Address Vector Lengths  : 06 04
+├─ Hardware Length (HLEN) : 06 bytes (Standard MAC address footprint).
+└─ Protocol Length (PLEN) : 04 bytes (Standard IPv4 address footprint).
+
+● Operation Code (OPER)   : 0001
+└─ Action Parameter       : Configured as an ARP Request operation.
+
+─────────── [ ARP ADDRESS BOUNDARY DICTIONARY ] ───────────
+
+● Sender Hardware (SHA)   : 0018 73de 57c1
+└─ Boundary Resolution    : Maps back directly to the originating host's MAC address.
+
+● Sender Protocol (SPA)   : c0a8 7b02
+└─ Boundary Resolution    : Decodes to source IP 192.168.123.2.
+
+● Target Hardware (THA)   : 0000 0000 0000
+└─ Boundary Resolution    : Left blank/cleared with zeroes as the physical address is unknown.
+
+● Target Protocol (TPA)   : c0a8 7b01
+└─ Boundary Resolution    : Decodes to target destination IP 192.168.123.1.
+
+─────────── [ FRAME PADDING METRICS ] ───────────
+
+● Ethernet Payload Padding : 0000 0000 0000 0000 0000 0000 0000 0000
+└─ Structural Alignment   : 16 bytes of trailer zeroes appended to satisfy the 64-byte Ethernet minimum.

@@ -1,0 +1,54 @@
+========================================================================================================================
+TCPDUMP CHEAT SHEET
+─────────── [ BPF DESCRIPTOR VS PROTOCOL PRIMITIVES ] ───────────
+
+● Primitive Syntax : High-level, human-readable keywords compiled automatically into bytecode.
+├─ Scope Boundary : Covers standard address targets, core protocols, or basic port designations.
+└─ Limitation     : Lacks granular inspection depth for parsing bitmasks or arbitrary byte offsets.
+
+● Raw BPF Syntax   : Low-level byte offset evaluations targeting specific protocol headers directly.
+├─ Scope Boundary : Evaluates packet headers using array indexing formats (e.g., proto[offset]).
+└─ Engine Layer   : Executes directly within the kernel packet filter engine for high-velocity lookups.
+
+─────────── [ ADVANCED LOW-LEVEL BPF BITWISE DESCRIPTIONS ] ───────────
+
+● TTL / Hop Limit Tracking (≤ 64) : ip[8]<=64||ip6[7]<=64
+├─ IPv4 Processing Array          : Checks byte offset 8 (Time to Live) for a value less than or equal to 64.
+├─ Logical Link Matrix            : Employs strict non-spaced symbol boundaries (||) for multi-stack tracking.
+└─ IPv6 Processing Array          : Checks byte offset 7 (Hop Limit) for a value less than or equal to 64.
+
+● Fragment State Tracking (DF Set) : ip[6]&64==64
+├─ Header Parsing Vector          : Evaluates byte offset 6 of the IPv4 header (Flags + Fragment Offset).
+├─ Bitwise Masking Operator       : Isolates the Don't Fragment bit via bitwise AND with decimal value 64.
+└─ Target Integrity Check         : Matches the isolated bit against decimal 64 to ensure the flag is explicitly active.
+
+─────────── [ CORE PROTOCOL FILTER ARRAYS BY DATA LINK LAYER ] ───────────
+
+● Layer 2 EtherType Identifiers   : ether proto 0x0806 (ARP)
+ether proto 0x8100 (VLAN)
+ether proto 0x0800 (IPv4)
+ether proto 0x86dd (IPv6)
+
+● Hardware Boundary Targets      : ether host [mac]
+ether src [mac]
+ether dst [mac]
+
+─────────── [ MULTIPLEX NETWORK & TRANSPORT LAYER PRIMITIVES ] ───────────
+
+● Layer 3 Address Configurations  : host [ip]
+src [ip]
+dst [ip]
+net [subnet/mask]
+
+● Layer 4 Multiplex Port Filters  : port [port]
+src port [port]
+dst port [port]
+tcp port [port] or udp port [port]
+
+─────────── [ RUNTIME ENVIRONMENT EXECUTION FLAGS ] ───────────
+
+● Operational Flags               : -i [interface]  -> Designates specific capture interface (e.g., eth0).
+-r [file.pcap]  -> Reads and processes an offline capture file.
+-w [file.pcap]  -> Writes raw packet data directly to disk.
+-nn             -> Inhibits resolution of hostnames and port numbers.
+-v / -vv / -vvv -> Increments the verbose structural output logging depth.

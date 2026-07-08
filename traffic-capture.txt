@@ -170,5 +170,291 @@
                └─ Source : Activated only if all predictable tracking engines fail to identify the card[cite: 163].
 
 ========================================================================================================================
-                                             [ COMPLETED TRAFFIC ANALYSIS SHEET ]                                         
+                              OSI LAYER 2 - 4: ADVANCED BPF COMPILATION & FILTER DISSECTION                             
+========================================================================================================================
+
++----------------------------------------------------------------------------------------------------------------------+
+| 4.2.1.4 & 4.2.1.5 TECHNICAL COMPENDIUM                                                                              |
++----------------------------------------------------------------------------------------------------------------------+
+| Given the Berkley Packet Filter (BPF) engine architecture, high-level primitives compile down into low-level kernel  |
+| instructions. This document outlines standard parsing logic, bytecode registers, offset masks, and literal examples  |
+| required to analyze packet captures effectively within a virtualized operations environment.                       |
++----------------------------------------------------------------------------------------------------------------------+
+
+ 📈 THE BPF ENGINE REGISTERS
+ ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
+  [REGISTER]        [SIZE / ROLE]                  [OPERATIONAL MECHANICS]
+  ╔═════════════════╤══════════════════════════════╤════════════════════════════════════════════════════════════════╗
+  ║ Accumulator (A) ║ 32-Bit Main Register         ║ Target for all direct load (ldb/ldh), arithmetic, and bitwise  ║
+  ║                 ║                              ║ verification logic operations.                                 ║
+  ╟─────────────────┼──────────────────────────────┼────────────────────────────────────────────────────────────────╢
+  ║ Index (X)       ║ 32-Bit Offset Register       ║ Stores calculation multipliers used primarily for variable     ║
+  ║                 ║                              ║ data-link steps (e.g., dynamic IPv4 Header Length offsets).     ║
+  ╚═════════════════╧══════════════════════════════╧════════════════════════════════════════════════════════════════╝
+
+
+========================================================================================================================
+ 4.2.1.4 COMPLETE TCPDUMP PRIMITIVE DICTIONARY
+========================================================================================================================
+
+ ─────────── [ SIMPLE PRIMITIVES ] ───────────
+
+  ● Link Layer & Base Protocols
+    ├─ `tcpdump ether`                   : Captures raw Ethernet frames across the local data-link layer.
+    ├─ `tcpdump arp`                     : Scopes targets strictly to Address Resolution Protocol interactions.
+    ├─ `tcpdump ip`                      : Filters exclusively for IPv4 layer-3 packets.
+    └─ `tcpdump ip6`                     : Filters exclusively for IPv6 layer-3 packets.
+
+  ● Control & Transport Mechanisms
+    ├─ `tcpdump icmp`                    : Isolates Internet Control Message Protocol packets.
+    ├─ `tcpdump 'icmp[icmptype] = icmp-echo'`  : Matches ICMP Echo Requests (Ping outbound).
+    ├─ `tcpdump 'icmp[icmptype] = icmp-reply'` : Matches ICMP Echo Replies (Ping inbound).
+    ├─ `tcpdump tcp`                     : Selects Transmission Control Protocol streams.
+    └─ `tcpdump udp`                     : Selects User Datagram Protocol streams.
+
+  ● Address & Boundary Scoping
+    ├─ `tcpdump host 192.168.1.1`        : Intercepts packets matching host as source or destination.
+    ├─ `tcpdump dst host 192.168.1.1`    : Traps packets targeting the specified destination host.
+    ├─ `tcpdump src host 192.168.1.1`    : Traps packets emanating from the specified source host.
+    ├─ `tcpdump net 192.168.1.0/24`      : Captures bidirectional traffic for the specified CIDR block.
+    ├─ `tcpdump src net 192.168.1.0/24`  : Captures traffic originating inside the network boundary.
+    └─ `tcpdump dst net 192.168.1.0/24`  : Captures traffic targeting systems within the network boundary.
+
+  ● Socket Multiplexing & Flags
+    ├─ `tcpdump tcp port 22`             : Filters bidirectional SSH traffic on port 22.
+    ├─ `tcpdump tcp dst port 22`         : Filters incoming connection attempts targeting target port 22.
+    ├─ `tcpdump tcp src port 22`         : Filters egress responses emanating from local listening port 22.
+    ├─ `tcpdump port 53`                 : Captures DNS queries/responses over both TCP and UDP.
+    └─ `tcpdump 'tcp[tcpflags] = tcp-ack'`: Matches segments where *only* the ACK bit is set in the flags space.
+
+
+ ─────────── [ COMPLEX LOGICAL PRIMITIVES ] ───────────
+
+  ● Multi-Host Intersections
+    ├─ `tcpdump host 192.168.1.1 and (10.1.1.1 or 10.1.1.2)`
+    │   └─ Restricts captures to traffic exchanged between host 192.168.1.1 and either specified node.
+    ├─ `tcpdump ip host 10.1.1.1 and not 10.1.1.2`
+    │   └─ Captures all IPv4 traffic involving 10.1.1.1 except interactions with 10.1.1.2.
+    ├─ `tcpdump net ucb-ether`
+    │   └─ Isolates local data-link frames communicating directly with the specified corporate net name.
+    └─ `tcpdump 'gateway 192.168.1.1 and (port ftp or ftp-data)'`
+        └─ Tracks FTP management or data channels running through the gateway edge. Escaped to avoid shell errors.
+
+  ● Advanced Bitmasking & Structural Analysis
+    ├─ Boundary Checking                 : `tcpdump ip and not net localnet`
+    │                                       Excludes local internal routing; isolates external boundary transits.
+    ├─ Handshake Trapping                : `tcpdump 'tcp[tcpflags] & (tcp-syn|tcp-fin) != 0 and not src and dst net localnet'`
+    │                                       Exposes connection starts (SYN) and teardowns (FIN) touching external hosts.
+    ├─ Reset/Ack Fingerprints            : `tcpdump 'tcp[tcpflags] & (tcp-rst|tcp-ack) == (tcp-rst|tcp-ack)'`
+    │                                       Isolates segments containing both the RST and ACK control flags simultaneously.
+    ├─ Layer-3 Frame Size Inspection     : `tcpdump 'gateway 192.168.1.1 and ip[2:2] > 576'`
+    │                                       Parses Total Length field bytes at offset 2; matches IP packets exceeding 576 bytes.
+    ├─ Anomalous Multicast Tracking      : `tcpdump 'ether[0] & 1 = 0 and ip[16] >= 224'`
+    │                                       Catches routed IP multicast frames lacking valid Ethernet multicast address mapping.
+    ├─ Precise Ping-Exclusion Filters    : `tcpdump 'icmp[icmptype] != icmp-echo and icmp[icmptype] != icmp-echoreply'`
+    │                                       Drops standard echo probes; preserves transit diagnostics like Time Exceeded.
+    └─ Pure HTTP Data Extraction         : `tcpdump 'tcp port 80 and (((ip[2:2] - ((ip[0]&0xf)<<2)) - ((tcp[12]&0xf0)>>2)) != 0)'`
+                                            Dynamically strips IHL (IP Header Length) and Data Offset (TCP Header Length) 
+                                            from Total Length. Matches only segments containing true application data.
+
+
+========================================================================================================================
+ 4.2.1.5 BPF BYTECODE COMPILATION ENGINE (`tcpdump -d`)
+========================================================================================================================
+
+ ─────────── [ KERNEL ASSEMBLY INSTRUCTION SPECIFICATIONS ] ───────────
+
+  ● `ldh [offset]`       : Load Half-Word. Fetches 2 bytes (16 bits) from packet offset into register A.
+  ● `ldb [offset]`       : Load Byte. Fetches 1 byte (8 bits) from packet offset into register A.
+  ● `ld  [offset]`       : Load Word. Fetches 4 bytes (32 bits) from packet offset into register A.
+  ● `ldxb 4*([offset]&0xf)`: Load Index Byte Formula. Extracts the lower nibble of the specified byte offset, 
+                            multiplies by 4, and stores the variable result directly into index register X.
+  ● `jeq #value jt jf`   : Jump if Equal. Compares accumulator A against literal constant hex value. 
+                            If match evaluation is true, execution forks to line `jt`. If false, execution drops to `jf`.
+  └─ `ret #value`        : Terminate BPF program. `ret #0` drops packet; `ret #262144` accepts the full captured packet.
+
+
+========================================================================================================================
+ CORE REGISTRY DISSECTION MAPS (HIGH-LEVEL TO LOW-LEVEL BPF DECONSTRUCTION)
+========================================================================================================================
+
+ [ DISSECTION 1: ARP RESOLUTION ENGINE ]
+  ● Filter Target: Isolate Address Resolution Protocol traffic (`tcpdump -d arp`)
+  ● Bytecode Array:
+    (000) ldh      [12]               ; Load 2-byte EtherType field from the Ethernet frame header (Offset 12).
+    (001) jeq      #0x806   jt 2 jf 3 ; Evaluate if EtherType matches ARP (0x0806). True → Go to 2 | False → Go to 3.
+    (002) ret      #262144            ; ACCEPT PACKET: Pass entire snapshot frame upstream to user-space analyzer.
+    (003) ret      #0                 ; REJECT PACKET: Drop packet silently inside kernel ring buffer.
+
+ [ DISSECTION 2: IPv4 ICMP ISOLATION ]
+  ● Filter Target: Match IPv4 packets containing ICMP operations (`tcpdump -d ip and icmp`)
+  ● Bytecode Array:
+    (000) ldh      [12]               ; Load EtherType at offset 12.
+    (001) jeq      #0x800   jt 2 jf 5 ; Verify if EtherType is IPv4 (0x0800). True → Advance to 2 | False → Abort to 5.
+    (002) ldb      [23]               ; Load 1-byte Protocol Field from within the IPv4 Header (Offset 23).
+    (003) jeq      #0x1     jt 4 jf 5 ; Verify if Protocol matches ICMP (0x01). True → Deliver to 4 | False → Abort to 5.
+    (004) ret      #262144            ; ACCEPT PACKET.
+    (005) ret      #0                 ; REJECT PACKET.
+
+ [ DISSECTION 3: IPv6 ICMPv6 CORE DISSECTION ]
+  ● Filter Target: Locate native IPv6 control traffic alongside fragmented elements (`tcpdump -d ip6 and icmp6`)
+  ● Bytecode Array:
+    (000) ldh      [12]               ; Load EtherType field.
+    (001) jeq      #0x86dd  jt 2 jf 8 ; Verify if EtherType is IPv6 (0x86dd). True → Advance to 2 | False → Abort to 8.
+    (002) ldb      [20]               ; Load Next Header byte from IPv6 fixed header structure (Offset 20).
+    (003) jeq      #0x3a    jt 7 jf 4 ; Match ICMPv6 (0x3A / 58). True → Skip to Accept (7) | False → Check Fragment (4).
+    (004) jeq      #0x2c    jt 5 jf 8 ; Match IPv6 Fragment Header (0x2C / 44). True → Proceed to 5 | False → Abort to 8.
+    (005) ldb      [54]               ; Load Next Header byte trailing the fixed 40-byte IPv6 base + 14-byte Eth wrapper.
+    (006) jeq      #0x3a    jt 7 jf 8 ; Check if the post-fragment header payload is ICMPv6 (0x3A). True → 7 | False → 8.
+    (007) ret      #262144            ; ACCEPT PACKET.
+    (008) ret      #0                 ; REJECT PACKET.
+
+ [ DISSECTION 4: TCP INGRESS VIA SSH PROTOCOL ]
+  ● Filter Target: Isolate IPv4 TCP segments originating explicitly from server port 22 (`tcpdump -d tcp src port 22`)
+  ● Bytecode Array:
+    (000) ldh      [12]               ; Load EtherType.
+    (001) jeq      #0x86dd  jt 2 jf 6 ; Check for IPv6. If False, divert to IPv4 validation path at instruction line 6.
+    (002) ldb      [20]               ; [IPv6 Path] Load Next Header protocol designator.
+    (003) jeq      #0x6     jt 4 jf 15 ; Verify if upper-layer protocol is TCP (0x06). True → Go to 4 | False → Drop.
+    (004) ldh      [54]               ; Load Source Port (Offset 54: 14-byte Eth + 40-byte IPv6 base).
+    (005) jeq      #0x16    jt 14 jf 15; Check if Source Port equals SSH (22 / 0x0016). True → Accept (14) | False → Drop.
+    (006) jeq      #0x800   jt 7 jf 15 ; [IPv4 Path] Confirm EtherType is IPv4 (0x0800). True → Go to 7 | False → Drop.
+    (007) ldb      [23]               ; Load Protocol byte field from the IPv4 header layout.
+    (008) jeq      #0x6     jt 9 jf 15 ; Validate that encapsulated protocol type matches TCP (0x06).
+    (009) ldh      [20]               ; Load 2-byte Fragment Offset tracking flags.
+    (010) jset     #0x1fff  jt 15 jf 11; Check if fragment flags or offset are present. True (Is fragmented) → Abort packet.
+    (011) ldxb     4*([14]&0xf)       ; Dynamic Step: Compute IPv4 Header length (IHL field at Offset 14), write into register X.
+    (012) ldh      [x + 14]           ; Load 2-byte Source Port from the TCP header start point (calculated dynamically as X + 14).
+    (013) jeq      #0x16    jt 14 jf 15; Evaluate if Source Port matches SSH port 22 (0x0016).
+    (014) ret      #262144            ; ACCEPT PACKET.
+    (015) ret      #0                 ; REJECT PACKET.
+
+ [ DISSECTION 5: NETWORK QUALITY OF SERVICE EVALUATION ]
+  ● Filter Target: Match differentiated service code points for Expedited Forwarding / DSCP 46 (`tcpdump -d 'ip[1]&252=184'`)
+  ● Bytecode Array:
+    (000) ldh      [12]               ; Load EtherType at boundary offset 12.
+    (001) jeq      #0x800   jt 2 jf 6 ; Validate IPv4 encapsulation profile.
+    (002) ldb      [15]               ; Load 1-byte Type of Service (ToS) / DSCP field (Offset 14 Eth + 1 byte IP drift).
+    (003) and      #0xfc              ; Mask out ECN bits: Bitwise AND accumulator against 0xFC (11111100 binary).
+    (004) jeq      #0xb8    jt 5 jf 6 ; Evaluate if remaining masked bits equal DSCP value 46 (46 << 2 = 184 / 0xB8).
+    (005) ret      #262144            ; ACCEPT PACKET.
+    (006) ret      #0                 ; REJECT PACKET.
+
+ [ DISSECTION 6: EXACT CONTROL FLAG MATCHING (STRICT SYN-ACK SYNCHRONIZATION) ]
+  ● Filter Target: Isolate segments containing ONLY the SYN and ACK flags without extra attributes (`tcpdump -d tcp[13]=17`)
+  ● Bytecode Array:
+    (000) ldh      [12]               ; Load EtherType.
+    (001) jeq      #0x800   jt 2 jf 10 ; Assert IPv4 data structure protocol.
+    (002) ldb      [23]               ; Load Protocol byte field.
+    (003) jeq      #0x6     jt 4 jf 10 ; Assert TCP transport layer profile.
+    (004) ldh      [20]               ; Load Fragment flags and offsets.
+    (005) jset     #0x1fff  jt 10 jf 6 ; Drop packet immediately if middle fragmentation is detected.
+    (006) ldxb     4*([14]&0xf)       ; Extract and calculate base IPv4 Header Length, writing calculation to index X.
+    (007) ldb      [x + 27]           ; Load 1 byte from the exact location of the TCP flags byte (Offset 13 from TCP base).
+    (008) jeq      #0x11    jt 9 jf 10 ; Evaluate if flags match exactly 17 (0x11 / ACK=16 + SYN=1). If other flags exist, fails.
+    (009) ret      #262144            ; ACCEPT PACKET.
+    (010) ret      #0                 ; REJECT PACKET.
+
+ [ DISSECTION 7: INCLUSIVE CONTROL FLAG MATCHING ]
+  ● Filter Target: Catch SYN-ACK sessions even if alternate optional flags are enabled (`tcpdump -d 'tcp[13]&17=17'`)
+  ● Bytecode Array:
+    (000) ldh      [12]               ; Load EtherType at frame boundary.
+    (001) jeq      #0x800   jt 2 jf 11 ; Assert IPv4 formatting.
+    (002) ldb      [23]               ; Load Protocol field register.
+    (003) jeq      #0x6     jt 4 jf 11 ; Assert TCP connection framework.
+    (004) ldh      [20]               ; Load Fragment markers.
+    (005) jset     #0x1fff  jt 11 jf 6 ; Abort filtering process if packet fragmentation is detected.
+    (006) ldxb     4*([14]&0xf)       ; Calculate header boundary shift; map value into index X.
+    (007) ldb      [x + 27]           ; Load the TCP flags byte (Offset 13 from calculated TCP header base).
+    (008) and      #0x11              ; Apply bitwise mask: AND accumulator bits against target mask 0x11 (SYN/ACK flags).
+    (009) jeq      #0x11    jt 10 jf 11; Evaluate if BOTH matching target bits remain set after the bitwise AND calculation.
+    (010) ret      #262144            ; ACCEPT PACKET.
+    (011) ret      #0                 ; REJECT PACKET.
+
+========================================================================================================================
+ 4.2.8 PASSIVE OS FINGERPRINTING & TRAFFIC METRICS (`p0f`)
+========================================================================================================================
+
+ ─────────── [ CORE PASSIVE MONITORING PRINCIPLES ] ───────────
+
+  ● Zero-Footprint Reconnaissance: Unlike active scanning engines (e.g., Nmap) that inject custom probe packets into the 
+    network, passive profiling identifies target configurations purely by eavesdropping on existing background traffic.
+  ● Behavioral Fingerprinting: Identifies host operating systems, browser architectures, uptime metrics, and network 
+    topologies by tracking implementation variances in protocol stacks, including:
+    ├─ Initial Time-to-Live (TTL) boundaries (e.g., Linux defaults to 64, Windows to 128, Cisco/iOS to 255).
+    ├─ TCP Window Size configurations and explicit sizing patterns.
+    ├─ TCP Options ordering arrays (`MSS`, `Window Scale`, `SACK Permitted`, `Timestamps`).
+    └─ Layout quirks within HTTP header fields and payload formatting styles.
+
+
+ ─────────── [ CRITICAL LOG PARSING & LOGICAL INTERROGATION ] ───────────
+
+  ● Target System Discovery Framework:
+    To analyze specific systems or service patterns out of the raw system capture log `/var/log/p0f.log`, use highly scoped 
+    grep pipelines to extract network states without administrative noise.
+
+  ● Dissection Loop 1: SYN-ACK Handshake Profiling
+    To extract incoming network negotiations targeting a specific web asset (e.g., host `172.16.82.106` on port `80`) to 
+    uncover base operating system signatures:
+    
+    Command:
+    sudo cat /var/log/p0f.log | grep "mod=syn+ack" | grep srv=172.16.82.106/80 | grep subj=srv
+
+    Operational Impact: Isolates server responses to accurately map target TCP/IP stack variables before higher-layer 
+    application payloads execute.
+
+  ● Dissection Loop 2: Application Layer (HTTP Response) Profiling
+    To pinpoint the exact application distribution or host distribution platform hosting the active web service:
+    
+    Command:
+    sudo cat /var/log/p0f.log | grep "mod=http response" | grep srv=172.16.82.106/80 | grep subj=srv
+
+    Operational Impact: Extracts application metadata banners from the HTTP wrapper, exposing system details like 
+    underlying Linux distribution varieties (e.g., Ubuntu Linux flavor constraints).
+
+  ● Dissection Loop 3: End-to-End Session Reassembly
+    To trace the complete transaction lifecycle between a remote client socket (e.g., `10.10.0.40`) and the target web assets:
+    
+    Command:
+    sudo cat /var/log/p0f.log | grep srv=172.16.82.106/80 | grep cli=10.10.0.40
+
+    Operational Impact: Reassembles sequential system milestones across a single pane, detailing MTU constraints, 
+    initial `syn` parameters, server `syn+ack` configurations, the client `http request`, and final server `http response`.
+
+
+ ─────────── [ PASSIVE MONITORING PROFILING MATRIX ] ───────────
+
+  ╔═══════════════════════╤══════════════════════════════════════╤═════════════════════════════════════════════════╗
+  ║ ARTIFACT CATEGORY     ║ DETECTED SIGNATURE VARIABLE          ║ SECURITY SIGNIFICANCE                           ║
+  ╠═══════════════════════╪══════════════════════════════════════╪═════════════════════════════════════════════════╣
+  ║ Network Layer (L3)    ║ Initial TTL, DF (Don't Fragment) bit ║ Determines the base OS family and estimates     ║
+  ║                       ║ flags, IP total packet length.       ║ network distance (hop count) to the target.     ║
+  ╟───────────────────────┼──────────────────────────────────────┼─────────────────────────────────────────────────╢
+  ║ Transport Layer (L4)  ║ Window Size, Options ordering, MSS   ║ Pinpoints fine-grained kernel versions and      ║
+  ║                       ║ layout, selective ACK configuration. ║ identifies embedded vs desktop stack variants.  ║
+  ╟───────────────────────┼──────────────────────────────────────┼─────────────────────────────────────────────────╢
+  ║ Application Layer (L7)║ User-Agent strings, HTTP response    ║ Exposes local patch levels, server version numbers,║
+  ║                       ║ headers, language priorities.        ║ and vulnerable software dependencies.           ║
+  ╚═══════════════════════╧══════════════════════════════════════╧═════════════════════════════════════════════════╝
+
+ ──────────────────────── [ USEFUL HEX CODES ] ────────────────────────
+ 
+ 0x0800 - ipv4
+ 0x86DD - ipv6
+ 0x0806 - arp
+ 0x8100 - vlan
+ 0x8035 - rarp
+ 0x888c - 802.1x
+ 0x88cc - lldp
+ 
+ 0x01 - icmp
+ 0x06 - tcp
+ 0x10 - chaos
+ 0x11 - udp
+ 0x2F - gre routing
+ 0x58 - eigrp
+ 0x59 - ospf
+
+========================================================================================================================
+                                             [ EOF ]                                         
 ========================================================================================================================

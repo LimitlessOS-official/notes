@@ -1,0 +1,41 @@
+blue float:
+10.49.231.248
+
+float ip:
+10.50.16.83
+
+blue internet host:
+10.10.0.40
+
+blue host 1:
+72.16.82.106
+
+blue host 4:
+172.16.82.106
+
+blue pop rtr:
+172.16.82.126
+vyos:password
+
+/home/activity_resources/pcaps/packet-headers.pcapng	-	main
+/home/activity_resources/pcaps/BPFCheck.pcap			-	t1
+
+main -> ubuntu -> blue host -> target
+	rdp		ssh -X		  ssh -X
+	
+	
+
+
+BROKEN QUESTIONS:
+-------------------
+packet 3:
+vlan id
+#9
+
+packet 4:
+vlan id
+#12
+
+packet 9:
+frag offset
+#28

@@ -1,0 +1,174 @@
+========================================================================================================================
+                                     WIRESHARK CHEAT SHEET                                  
+========================================================================================================================
+─────────── [ CAPTURE FILTERS VS DISPLAY FILTERS ] ───────────
+
+● Capture Filters: Used to specify which packets should be saved to disk while capturing.
+├─ Syntax Format : Conforms strictly to TCPDUMP primitives and low-level BPF layout.
+└─ Timing Layer  : Must be established at or before startup; capture engine must be stopped to modify.
+
+● Display Filters: Changes the runtime view of what packets are currently displayed from those captured.
+├─ Syntax Format : Uses custom Wireshark-specific filters; does not conform to standard BPF format.
+└─ Timing Layer  : Applied interactively on-the-fly across active captures or post-capture files.
+
+─────────── [ CORE PROTOCOL DISPLAY FILTERS BY LAYER ] ───────────
+
+● Layer 2 (Data Link) : eth, arp, vlan, wlan
+
+● Layer 3 (Network)   : ip, ipv6, icmp, icmpv6
+
+● Layer 4 (Transport) : tcp, udp
+
+● Layer 5 (Session)   : smb, socks, rpc
+
+● Layer 7 (App Stack) : telnet, ssh, http, ssl, tls, quic, dns, ftp, ftp-data, tftp,
+smtp, pop, imap, dhcp (or bootp), ntp, tacplus, radius, rdp
+
+● Routing Protocols   : rip, ospf, eigrp, bgp
+
+─────────── [ ADDRESS BOUNDARY & PORT BOUNDARY FILTER DICTIONARY ] ───────────
+
+● Layer 2 Addressing  : eth.addr, eth.src == [mac], eth.dst == [mac]
+
+● Layer 3 Addressing  : ip.addr == [ip], ip.src == [ip], ip.dst == [ip]
+
+● Layer 4 Multiplex   : tcp.port == [port], tcp.srcport == [port], tcp.dstport == [port]
+udp.port == [port], udp.srcport == [port], udp.dstport == [port]
+
+─────────── [ IPV4 & IPV6 CORE STRUCTURE FILTER ARRAYS ] ───────────
+
+● IPv4 Header Parsing : ip.hdr_len == 20 or ip.hdr_len > 20 (Header Length Evaluation)
+ip.dsfield.dscp > 0 or ip.dsfield.dscp == 48 (DSCP Traffic Tracking)
+ip.dsfield.ecn > 0 or ip.dsfield.ecn == 2 (Explicit Congestion Notification)
+
+● IPv4 Control Flags  : ip.flags.rb == 1 (Reserved Bit), ip.flags.df == 1 (Don't Fragment Bit)
+
+● IPv4 Fragmentation  : (ip.flags.mf == 1) || (ip.frag_offset > 0) (Isolates Fragmented Streams)
+
+● IPv4 Time-to-Live   : ip.ttl == 64, ip.ttl == 128, ip.ttl <= 64 && ip.ttl > 30
+
+● IPv4 Protocol Field : ip.proto == 1 (ICMP), ip.proto == 6 (TCP), ip.proto == 17 (UDP)
+
+ip.proto == 41 (6-in-4 or 6-to-4 Encapsulation Tunneling)
+
+● IPv6 Header Parsing : ipv6.tclass > 0, ipv6.tclass == 0xe0 (Traffic Class Evaluation)
+ipv6.nxt == 6 (TCP), ipv6.nxt == 17 (UDP), ipv6.nxt == 58 (ICMPv6)
+ipv6.nxt == 4 (4-in-6 Encapsulation Interface)
+
+─────────── [ TRANSPORT LAYER (TCP) BITMASKING & FLAG ARRAYS ] ───────────
+
+● TCP Offset Tracking : tcp.hdr_len == 32, tcp.hdr_len > 20
+
+● Individual Flags    : tcp.flags.syn == 1, tcp.flags.ack == 0, tcp.flags.reset == 1, tcp.flags.urg == 1
+
+● Hex Flag Fingerprint: tcp.flags == 0x02 (SYN State)
+
+tcp.flags == 0x12 (SYN-ACK State Verification)
+tcp.flags == 0x10 (ACK State)
+tcp.flags == 0x18 (PSH-ACK Transaction State)
+
+● Miscellany Metrics  : tcp.urgent_pointer > 0 (Urgent Pointer Check)
+
+─────────── [ APPLICATION LAYER SPECIALIZED DISSECTIONS ] ───────────
+
+● HTTP Transactional  : http.request (Isolates outbound requests)
+http.request.method == "GET" or http.request.method == "POST"
+http.response (Isolates incoming server responses)
+http.response.code == 200 or http.response.code == 404
+http.user_agent (Extracts browser signature user agent strings)
+
+● DNS Query Scoping   : dns.qry.type == 1 (A), dns.qry.type == 2 (NS), dns.qry.type == 6 (SOA)
+dns.qry.type == 28 (AAAA), dns.qry.type == 252 (AXFR Zone Transfer)
+
+● DNS Response Scoping: dns.resp.type == 1 (A), dns.resp.type == 28 (AAAA), dns.resp.type == 2 (NS)
+
+● SSH Configuration   : ssh.protocol == "SSH-2.0-OpenSSH_7.2p2 Ubuntu-4ubuntu2.1"
+
+● ARP Operational     : arp.opcode == 1 (Request), arp.opcode == 2 (Reply)
+arp.opcode == 3 (RARP Request), arp.opcode == 4 (RARP Reply)
+(arp.opcode == 2) && (eth.addr == ff:ff:ff:ff:ff:ff) (Gratuitous ARP)
+
+● ICMP Type & Code    : icmp.type == 8 (Echo Request), icmp.type == 0 (Echo Reply)
+icmp.type == 11 (Time Exceeded Diagnostics)
+(icmp.type == 3) && (icmp.code == 3) (Destination Port Unreachable)
+
+● DHCP State Machine  : (udp.srcport == 68) && (udp.dstport == 67) (Client to Server Messaging)
+(udp.srcport == 67) && (udp.dstport == 68) (Server to Client Messaging)
+dhcp.option.dhcp == 1 (Discover), 2 (Offer), 3 (Request), 5 (Ack)
+
+● FTP Management      : ftp.request.command == "USER" or ftp.request.command == "PASS" (Auth)
+ftp.request.command == "RETR" (Download), ftp.request.command == "STOR" (Upload)
+ftp.request.command == "PASV" (Passive Mode), ftp.request.command == "LIST" (Dir)
+
+─────────── [ WILDCARD DATA STRINGS & OPERATOR SYNTAX ] ───────────
+
+● Payload Search      : data contains "String" (Generic layout-agnostic raw byte matching)
+ip contains "String" (Targeted IP layer packet payload matching)
+http contains "String" (Targeted application layer payload matching)
+
+● Logical Operators   : Concatenation (and / &&), Alteration (or / ||), Negation (!(filter))
+
+─────────── [ PROTOCOL STREAM DISSECTION SHORTCUTS (FOLLOW RUNTIME) ] ───────────
+
+Reassembles raw, fragmented packet payloads into continuous, human-readable session streams.
+Trigger Path: Menu -> Analyze -> Follow -> [Target Protocol]
+
+● TCP Session Stream Reassembly  : Ctrl + Alt + Shift + T
+● UDP Session Stream Reassembly  : Ctrl + Alt + Shift + U
+● TLS Decrypted Stream Output    : Ctrl + Alt + Shift + S
+● HTTP Context Stream Output     : Ctrl + Alt + Shift + H
+
+─────────── [ HIGH-VALUE RUNTIME METRICS INTERFACE MATRIX ] ───────────
+
+╔═══════════════════════╤══════════════════════════════════════╤═════════════════════════════════════════════════╗
+║ ARTIFACT CATEGORY     ║ NAVIGATION PATH                      ║ ANALYTICAL CAPABILITY & PROFILE                 ║
+╠═══════════════════════╪══════════════════════════════════════╪═════════════════════════════════════════════════╣
+║ Colorize Traffic      ║ View -> Coloring Rules...            ║ Visually separates conversations on L2-L4 layers ║
+║                       ║                                      ║ using custom highlighted rulesets.          ║
+╟───────────────────────┼──────────────────────────────────────┼─────────────────────────────────────────────────╢
+║ Protocol Hierarchy    ║ Statistics -> Protocol Hierarchy     ║ Tree layout tracking breakdown percentages of   ║
+║                       ║                                      ║ all packets on the wire to pinpoint anomalies. ║
+╟───────────────────────┼──────────────────────────────────────┼─────────────────────────────────────────────────╢
+║ Firewall ACL Rules    ║ Tools -> Firewall ACL Rules          ║ Auto-generates block commands for Cisco IOS,    ║
+║                       ║                                      ║ Netfilter (iptables), pf, ipfw, and netsh. ║
+╟───────────────────────┼──────────────────────────────────────┼─────────────────────────────────────────────────╢
+║ Exporting Objects     ║ File -> Export Objects               ║ Carves unencrypted artifacts, images, and files ║
+║                       ║                                      ║ directly from raw network layer streams.      ║
+╟───────────────────────┼──────────────────────────────────────┼─────────────────────────────────────────────────╢
+║ Decrypt Traffic       ║ Edit -> Preferences -> Protocols     ║ Feeds cryptographic keys into SSL/TLS or 802.11 ║
+║                       ║                                      ║ dissectors to extract raw payload layers.     ║
+╟───────────────────────┼──────────────────────────────────────┼─────────────────────────────────────────────────╢
+║ Conversations Tracking║ Statistics -> Conversations          ║ Tracks active end-host pairings and the exact   ║
+║                       ║                                      ║ transaction byte volumes exchanged.            ║
+╟───────────────────────┼──────────────────────────────────────┼─────────────────────────────────────────────────╢
+║ Endpoints Enumeration ║ Statistics -> Endpoints              ║ Enumerates absolute unique addresses tracking   ║
+║                       ║                                      ║ incoming/outgoing payload distribution.       ║
+╟───────────────────────┼──────────────────────────────────────┼─────────────────────────────────────────────────╢
+║ I/O Graph Generation  ║ Statistics -> I/O Graph              ║ Renders a visual time line chart tracking data   ║
+║                       ║                                      ║ pacing to reveal surges or dropouts.          ║
+╟───────────────────────┼──────────────────────────────────────┼─────────────────────────────────────────────────╢
+║ Expert Information    ║ Analyze -> Expert Information        ║ Evaluates logs, packet anomalies, protocol flags,║
+║                       ║                                      ║ and bad checksum state transitions.           ║
+╚═══════════════════════╧══════════════════════════════════════╧═════════════════════════════════════════════════╝
+
+──────────────────────── [ USEFUL HEX CODES ] ────────────────────────
+
+0x0800 - ipv4
+0x86DD - ipv6
+0x0806 - arp
+0x8100 - vlan
+0x8035 - rarp
+0x888c - 802.1x
+0x88cc - lldp
+
+0x01 - icmp
+0x06 - tcp
+0x10 - chaos
+0x11 - udp
+0x2F - gre routing
+0x58 - eigrp
+0x59 - ospf
+
+========================================================================================================================
+                                             [ EOF ]                                         
+========================================================================================================================

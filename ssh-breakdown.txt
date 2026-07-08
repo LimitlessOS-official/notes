@@ -1,0 +1,92 @@
+===============================================================================
+            THE SSH TUNNELING SYNTAX & OPERATIONAL BLUEPRINT
+===============================================================================
+
+1. LOCAL PORT FORWARDING (-L)
+-------------------------------------------------------------------------------
+* Core Purpose: Pulls a service from a remote or internal network and maps it 
+  to a port on your local machine, allowing you to bypass inbound firewall rules.
+
+* Master Syntax Blueprint:
+  ssh user@box -L local_port:target_ip:target_port
+
+  - ssh               = Initiates the Secure Shell client session.
+  - user@box          = The landing zone credentials and IP/Hostname of your pivot.
+  - -L                = The directive flag specifying a Local port forward layout.
+  - local_port        = The local socket port you open on your machine to bind to.
+  - target_ip         = The destination host IP reachable from the pivot box.
+  - target_port       = The specific service port running on that final target host.
+
+* Conceptual Execution Examples:
+  - Example A (Single Hop Pivot):
+    $ ssh student@172.16.1.15 -L 8080:172.16.40.10:80 -NT
+    (Maps your local port 8080 straight to the web application at 172.16.40.10:80)
+
+  - Example B (Nesting / Chaining Targets via Local Host Binds):
+    $ ssh student@localhost -p 2222 -L 3322:172.16.82.106:22 -NT
+    (Binds local port 3322 to target 172.16.82.106:22 by pivoting through your 
+     already established local tunnel listening on port 2222)
+
+* Alternative Formats & Modifiers:
+  - Background Execution Format: 
+    $ ssh -f -N student@172.16.1.15 -L 8080:172.16.40.10:80
+  - ProxyJump Multi-Hop Format (-J):
+    $ ssh -J student@172.16.1.15,student@172.16.40.10 student@172.16.82.106 -L 1111:192.168.1.10:22 -NT
+
+
+2. REMOTE / REVERSE PORT FORWARDING (-R)
+-------------------------------------------------------------------------------
+* Core Purpose: Pushes a local service out to a remote server or forces a remote 
+  server to listen on a port and tunnel incoming traffic back down to your machine. 
+  Essential for bypassing strict perimeter network defenses.
+
+* Master Syntax Blueprint:
+  ssh user@box -R remote_port:target_ip:target_port
+
+  - -R                = The directive flag specifying a Remote/Reverse port forward.
+  - remote_port       = The port the remote server will open and listen on.
+  - target_ip         = The destination node IP to handle the redirected traffic.
+  - target_port       = The destination application service port.
+
+* Conceptual Execution Example:
+  - Example A (Exposing a Local Service):
+    $ ssh student@10.10.0.40 -R 5522:172.16.40.10:22 -NT
+    (Instructs 10.10.0.40 to open port 5522; anyone connecting there gets pushed 
+     back through the tunnel to 172.16.40.10 on port 22)
+	 
+ssh user@ip1 -R <rhp>:ip2:<service>
+	you're opening opening rhp from ip2 onto ip1 via service port so:
+		ssh student@10.49.13.64 -R 20800:127.0.0.1:22 -NT
+	*** SSH can now be used on 10.49.13.64 via port 20800 *** so you can ```ssh -p 20800 10.49.13.64``` 
+
+
+3. DYNAMIC PORT FORWARDING (-D)
+-------------------------------------------------------------------------------
+* Core Purpose: Turns your SSH connection into a local SOCKS proxy server, 
+  allowing proxy-aware applications to dynamically communicate with any network 
+  segment reachable by the pivot host.
+
+* Master Syntax Blueprint:
+  ssh user@ip -p alt_port -D proxy_port
+
+  - -p alt_port       = Modifies the target connection to use a custom SSH port 
+                        instead of standard port 22.
+  - -D                = The directive flag specifying Dynamic SOCKS forwarding.
+  - proxy_port        = The local port you want your SOCKS server to run on.
+
+* Conceptual Execution Examples:
+  - Example A (Standard Dynamic Tunnel):
+    $ ssh john@10.50.1.10 -D 9050 -NT
+    (Spawns a SOCKS proxy on your local port 9050 routing into the 10.50.1.10 network)
+
+  - Example B (Custom Incoming Tunnel Port):
+    $ ssh bill@127.0.0.1 -p 2222 -D 9050 -NT
+    (Connects to an alternate SSH service on port 2222 to establish the SOCKS proxy)
+
+* Interacting Application Formats:
+  - Proxychains Integration Configuration (/etc/proxychains.conf):
+    [ProxyList]
+    socks4  127.0.0.1  9050
+  - Command Execution Wrapper:
+    $ proxychains nmap -Pn -sT 172.16.40.0/27
+===============================================================================

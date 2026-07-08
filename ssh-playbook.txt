@@ -1,0 +1,620 @@
+================================================================================
+                     SSH TUNNELING LAB PLAYBOOK (NET2)
+================================================================================
+
+GOAL
+----
+Never assume anything.
+Prove every connection.
+Document everything.
+Pivot one hop at a time.
+
+================================================================================
+STARTING POINT
+================================================================================
+
+Machine:
+    blueinternethost
+
+Known credentials:
+    student
+    password
+
+ASSUME:
+    Blue can ONLY reach the very first host.
+
+DO NOT ASSUME:
+    • Blue reaches internal networks
+    • SSH exists everywhere
+    • Telnet exists everywhere
+    • nc exists (could be netcat)
+    • A host can reach every other host
+
+================================================================================
+FOR EVERY NEW HOST
+================================================================================
+
+[ ] Record hostname
+[ ] Record IP
+[ ] Record who can reach it
+[ ] Record services
+[ ] Record credentials
+[ ] Record blocked commands
+[ ] Record working commands
+[ ] Record hints/files
+[ ] Record answer
+
+================================================================================
+STEP 1 - IDENTIFY HOST
+================================================================================
+
+hostname
+
+ip addr
+
+ip route
+
+ip neigh | grep -vi failed
+
+================================================================================
+STEP 2 - CHECK WHAT TOOLS ACTUALLY WORK
+================================================================================
+
+for x in \
+ssh telnet ftp curl wget python3 busybox \
+netcat nc socat openssl tcpdump; do
+
+    printf "%-10s" "$x:"
+    command -v "$x" || echo "missing"
+
+done
+
+IMPORTANT
+
+Just because a binary exists DOES NOT mean it runs.
+
+Test it.
+
+Examples:
+
+ssh
+
+telnet
+
+curl
+
+busybox
+
+================================================================================
+STEP 3 - TEST PORTS
+================================================================================
+
+Use bash TCP.
+
+timeout 3 bash -c 'exec 3<>/dev/tcp/IP/PORT' \
+&& echo OPEN \
+|| echo CLOSED
+
+Example:
+
+timeout 3 bash -c 'exec 3<>/dev/tcp/172.16.0.60/23'
+
+================================================================================
+STEP 4 - GRAB SERVICE BANNERS
+================================================================================
+
+SSH
+
+exec 3<>/dev/tcp/IP/22
+head -c 100 <&3
+
+HTTP
+
+exec 3<>/dev/tcp/IP/80
+
+printf 'GET / HTTP/1.0\r\nHost: IP\r\n\r\n' >&3
+
+cat <&3
+
+FTP
+
+exec 3<>/dev/tcp/IP/21
+
+cat <&3 &
+
+
+================================================================================
+STEP 6 - BUILD THE PIVOT
+================================================================================
+
+FIRST HOST
+-----------
+
+Reverse tunnel:
+
+ssh -N -R 20822:127.0.0.1:22 student@BLUE_IP
+
+From blue:
+
+ssh -p 20822 student@127.0.0.1
+
+--------------------------------------------------------------------------------
+
+NEXT HOPS
+---------
+
+Use JumpHost.
+
+ssh -J FIRSTPIVOT -p PORT USER@TARGET
+
+Never SSH from a pivot unless you've confirmed ssh works there.
+
+================================================================================
+STEP 7 - FORWARD SERVICES
+================================================================================
+
+ssh -N \
+-J PIVOT \
+-p SSHPORT \
+-L LOCALPORT:TARGET:TARGETPORT \
+USER@PIVOT
+
+Examples
+
+HTTP
+
+-L 20880:TARGET:80
+
+FTP
+
+-L 20821:TARGET:21
+
+TELNET
+
+-L 20823:TARGET:23
+
+================================================================================
+STEP 8 - IF SSH IS BLOCKED
+================================================================================
+
+DON'T KEEP TRYING.
+
+Instead:
+
+Blue
+↓
+
+JumpHost
+
+↓
+
+Target
+
+Let BLUE perform the SSH.
+
+================================================================================
+STEP 9 - IF TELNET IS BLOCKED
+================================================================================
+
+Check Python:
+
+python3 -c "import telnetlib"
+
+If it works...
+
+Use telnetlib.
+
+DON'T use
+
+/dev/tcp
+
+for logging into telnet.
+
+If you see:
+
+��%��&����
+
+That is ONLY telnet negotiation.
+
+================================================================================
+STEP 10 - SIMPLE RELAY
+================================================================================
+
+Need raw TCP?
+
+Use Python relay.
+
+Need Telnet?
+
+Use telnetlib.
+
+================================================================================
+STEP 10A - PYTHON RAW TCP RELAY
+================================================================================
+
+USE THIS WHEN:
+    You need to expose a TCP service through a pivot host.
+
+GOOD FOR:
+    HTTP
+    raw flag ports
+    simple TCP services
+    sometimes FTP control ports
+
+NOT GOOD FOR:
+    Telnet login, unless telnet negotiation is handled elsewhere.
+
+SITUATION:
+    Current host can reach TARGET:PORT.
+    Blue cannot reach TARGET:PORT.
+    Current host has python3.
+
+--------------------------------------------------------------------------------
+ON THE PIVOT HOST
+--------------------------------------------------------------------------------
+
+Change these values:
+
+    LISTEN_PORT
+    TARGET_IP
+    TARGET_PORT
+
+Command:
+
+python3 - <<'PY'
+import socket
+import select
+
+LISTEN_HOST = "0.0.0.0"
+LISTEN_PORT = 20810
+
+TARGET_IP = "TARGET_IP_HERE"
+TARGET_PORT = 80
+
+ls = socket.socket()
+ls.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+ls.bind((LISTEN_HOST, LISTEN_PORT))
+ls.listen(5)
+
+print("[+] relay listening on %s:%d -> %s:%d" %
+      (LISTEN_HOST, LISTEN_PORT, TARGET_IP, TARGET_PORT), flush=True)
+
+while True:
+    client, addr = ls.accept()
+    print("[+] client connected:", addr, flush=True)
+
+    remote = socket.socket()
+    remote.connect((TARGET_IP, TARGET_PORT))
+
+    sockets = [client, remote]
+
+    try:
+        while True:
+            readable, _, _ = select.select(sockets, [], [])
+
+            for s in readable:
+                data = s.recv(4096)
+
+                if not data:
+                    raise Exception("connection closed")
+
+                if s is client:
+                    remote.sendall(data)
+                else:
+                    client.sendall(data)
+
+    except Exception as e:
+        print("[+] closed:", e, flush=True)
+
+    try:
+        client.close()
+    except:
+        pass
+
+    try:
+        remote.close()
+    except:
+        pass
+PY
+
+--------------------------------------------------------------------------------
+FROM BLUE
+--------------------------------------------------------------------------------
+
+Forward to the relay port through your SSH path.
+
+Example:
+
+ssh -N \
+-J USER@PIVOT1:PORT \
+-p SSHPORT \
+-L 20810:RELAY_HOST_IP:20810 \
+USER@SSH_PIVOT_IP
+
+Then connect from blue:
+
+nc 127.0.0.1 20810
+
+or:
+
+telnet 127.0.0.1 20810
+
+or:
+
+curl http://127.0.0.1:20810/
+
+================================================================================
+STEP 10B - PYTHON TELNETLIB LOGIN
+================================================================================
+
+USE THIS WHEN:
+    Target is Telnet.
+    Normal telnet is blocked.
+    /dev/tcp shows gibberish like:
+
+        ��%��&����
+
+WHY:
+    That gibberish is Telnet negotiation.
+    Raw TCP does not answer it.
+    telnetlib does.
+
+--------------------------------------------------------------------------------
+CHECK IF TELNETLIB EXISTS
+--------------------------------------------------------------------------------
+
+python3 -c "import telnetlib; print('telnetlib OK')"
+
+If it says telnetlib OK, use the script below.
+
+--------------------------------------------------------------------------------
+TELNET LOGIN SCRIPT
+--------------------------------------------------------------------------------
+
+Change these:
+
+    HOST
+    USER
+    PASS
+
+Command:
+
+python3 - <<'PY'
+import telnetlib
+import time
+import sys
+
+HOST = "TARGET_IP_HERE"
+PORT = 23
+
+USER = b"USERNAME_HERE\n"
+PASS = b"PASSWORD_HERE\n"
+
+tn = telnetlib.Telnet(HOST, PORT, timeout=10)
+
+print(tn.read_until(b"login:", timeout=10).decode("latin1", "ignore"), end="")
+tn.write(USER)
+
+print(tn.read_until(b"Password:", timeout=10).decode("latin1", "ignore"), end="")
+tn.write(PASS)
+
+time.sleep(1)
+
+print(tn.read_very_eager().decode("latin1", "ignore"), end="")
+
+while True:
+    cmd = input("$ ")
+    tn.write(cmd.encode() + b"\n")
+    time.sleep(1)
+    print(tn.read_very_eager().decode("latin1", "ignore"), end="")
+PY
+
+--------------------------------------------------------------------------------
+EXAMPLE
+--------------------------------------------------------------------------------
+
+HOST = "172.16.0.100"
+USER = b"net2_comrade8\n"
+PASS = b"privet8\n"
+
+Then run commands normally inside the script prompt.
+
+Example:
+
+$ hostname
+
+$ ip addr
+
+$ tcpdump -XX -i any 'not port 23'
+
+================================================================================
+STEP 10C - ONE-SHOT TELNETLIB COMMAND
+================================================================================
+
+USE THIS WHEN:
+    You do not need an interactive shell.
+    You just want to log in and run one command.
+
+Example:
+    Log in by Telnet and run tcpdump.
+
+Change:
+
+    HOST
+    USER
+    PASS
+    COMMAND
+
+Command:
+
+python3 - <<'PY'
+import telnetlib
+import time
+import sys
+
+HOST = "TARGET_IP_HERE"
+PORT = 23
+
+USER = b"USERNAME_HERE\n"
+PASS = b"PASSWORD_HERE\n"
+
+COMMAND = b"COMMAND_HERE\n"
+
+tn = telnetlib.Telnet(HOST, PORT, timeout=10)
+
+print(tn.read_until(b"login:", timeout=10).decode("latin1", "ignore"), end="")
+tn.write(USER)
+
+print(tn.read_until(b"Password:", timeout=10).decode("latin1", "ignore"), end="")
+tn.write(PASS)
+
+time.sleep(1)
+print(tn.read_very_eager().decode("latin1", "ignore"), end="")
+
+tn.write(COMMAND)
+
+while True:
+    data = tn.read_some()
+    if data:
+        sys.stdout.write(data.decode("latin1", "ignore"))
+        sys.stdout.flush()
+		
+================================================================================
+STEP 11 - TCPDUMP QUESTIONS
+================================================================================
+
+Usually:
+
+tcpdump -XX -i any 'not port 23'
+
+Ignore telnet.
+
+Look for:
+
+• repeated ASCII
+• repeated hex
+• weird payloads
+• beacons
+• ICMP payloads
+
+Example
+
+badb eef5 badb eef5
+
+Answer:
+
+badbeef5
+
+================================================================================
+HOST TEMPLATE
+================================================================================
+
+HOST
+----
+
+Hostname:
+
+IP:
+
+Reachable From:
+
+Credentials:
+
+Open Ports:
+
+Can Reach:
+
+Blocked Tools:
+
+Working Tools:
+
+Interesting Files:
+
+Interesting Services:
+
+Question:
+
+Answer:
+
+Notes:
+
+
+================================================================================
+NETWORK TEMPLATE
+================================================================================
+
+blueinternethost
+    |
+    |
+    v
+FIRST HOST
+    |
+    +----
+    |
+    +----
+    |
+    v
+SECOND NETWORK
+    |
+    +----
+    |
+    +----
+    |
+    v
+FINAL HOST
+
+Fill this in as you discover pivots.
+
+================================================================================
+DISCOVERY ORDER
+================================================================================
+
+1.
+Can I reach it?
+
+↓
+
+2.
+What ports?
+
+↓
+
+3.
+What tools work?
+
+↓
+
+4.
+Any hints?
+
+↓
+
+5.
+Can I pivot?
+
+↓
+
+6.
+Tunnel if needed.
+
+↓
+
+7.
+Answer question.
+
+↓
+
+8.
+Repeat.
+
+================================================================================
+REMEMBER
+================================================================================
+
+✓ Test.
+✓ Verify.
+✓ Document.
+✓ Pivot.
+✓ Never assume.
+
+If something says "Permission denied", stop trying that method and find another.

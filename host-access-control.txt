@@ -1,136 +1,746 @@
 ================================================
-				filtering tools
+              FILTERING TOOLS
 ================================================
 
-ipfwadm:
-	-linux 1.2
-
+ipfwadm
+	linux 1.2
 
 ipchains
-	-linux 2.2
+	linux 2.2
+
+iptables
+	linux 2.4
+
+nftables
+	linux 3.13
 
 
-iptables                  ____
-	-linux 2.4				  |
-							  |
-                              |  we'll be using these 2
-nftables                      |
-	-linux 3.13           ____|
-	
-================================================
-				iptables syntax
-================================================
+We'll mostly use:
 
--s                     _  Source IP/subnet (e.g., -s 192.168.1.50)
--d                      | Destination IP/subnet (e.g., -d 8.8.8.8)
-[-t filter]             | Packet Filtering (Default table, omit "-t mangle")
--p tcp (or -p udp)      | Matches protocol (Must split TCP and UDP into separate rules)
---dport                 | Matches destination port
---sport                _| Matches source port
+	iptables
+	nftables
 
--m state --state ESTABLISHED   -> Stateful Firewall (Matches valid, active connections)
 
-------------------------------------------------
-e.g commands
-------------------------------------------------
-iptables -A INPUT -s 192.168.1.50 -d 10.0.0.5 -p tcp --dport 22 ``` -m state --state ESTABLISHED -j ACCEPT ```
-** filters tcp traffic to 10.0.0.5 on port 22 from 192.168.1.50 **
+Basic idea:
 
-iptables -A INPUT -s 192.168.1.50 -d 10.0.0.5 -p udp --dport 53 ``` -m state --state ESTABLISHED -j ACCEPT ```
-** filters udp traffic to 10.0.0.5 on port 53 from 192.168.1.50 **
-
-``` -m state --state ESTABLISHED -j ACCEPT ```
-** Allows the traffic ONLY if the connection is already open and active **
+	Table
+	  └── Chain
+	        └── Rule
 
 ================================================
-                nftables syntax
+              TRAFFIC DIRECTION
 ================================================
 
-ip saddr               _  Source IP/subnet (e.g., ip saddr 192.168.1.50)
-ip daddr                | Destination IP/subnet (e.g., ip daddr 8.8.8.8)
-table ip filter         | Packet filtering table (must exist before adding chains/rules)
-tcp (or udp)            | Matches protocol (Must split TCP and UDP into separate rules)
-tcp dport               | Matches TCP destination port
-udp dport               | Matches UDP destination port
-tcp sport               | Matches TCP source port
-udp sport              _| Matches UDP source port
+INPUT
+	traffic COMING INTO this computer
 
-ct state established    -> Stateful Firewall (Matches valid, active connections)
+OUTPUT
+	traffic LEAVING this computer
 
-------------------------------------------------
-e.g commands
-------------------------------------------------
-nft add rule ip filter input ip saddr 192.168.1.50 ip daddr 10.0.0.5 tcp dport 22 ``` ct state established accept ```
-** filters tcp traffic to 10.0.0.5 on port 22 from 192.168.1.50 **
+FORWARD
+	traffic PASSING THROUGH this computer
 
-nft add rule ip filter input ip saddr 192.168.1.50 ip daddr 10.0.0.5 udp dport 53 ``` ct state established accept ```
-** filters udp traffic to 10.0.0.5 on port 53 from 192.168.1.50 **
 
-``` ct state established accept ```
-** Allows the traffic ONLY if the connection is already open and active **
+SERVER rule:
+	Someone connects TO me
+
+CLIENT rule:
+	I connect OUT to someone else
+
+
+Example SSH:
+
+Pivot connects TO T2 SSH:
+
+	T2 INPUT  = tcp dport 22
+	T2 OUTPUT = tcp sport 22
+
+
+T2 connects OUT to Pivot SSH:
+
+	T2 OUTPUT = tcp dport 22
+	T2 INPUT  = tcp sport 22
+
+
+dport = destination port
+sport = source port
 
 ================================================
-				  linux hooks
+              COMMON PORTS
 ================================================
 
-------------------------------------------------
-system startup/shutdown
-------------------------------------------------
-/etc/rc.local for custom commands at startup
-/etc/rc.d/* directories for custom init scripts
-------------------------------------------------
+SSH
+	22/tcp
+
+TELNET
+	23/tcp
+
+HTTP
+	80/tcp
+
+RDP
+	3389/tcp
+
+DNS
+	53/tcp
+	53/udp
+
+ICMP
+	ping request = type 8
+	ping reply   = type 0
+
+================================================
+              IPTABLES SYNTAX
+================================================
+
+iptables -t [table] [option] [chain] [matches] -j [action]
+
+
+-t filter
+	packet filtering table
+	default table
+	can usually omit it
+
+-A
+	append rule
+
+-I
+	insert rule
+
+-D
+	delete rule
+
+-F
+	flush rules
+
+-L
+	list rules
+
+-S
+	list rules as commands
+
+-P
+	change default policy
+
+
+-s
+	source IP/subnet
+
+-d
+	destination IP/subnet
+
+-p tcp
+	TCP
+
+-p udp
+	UDP
+
+-p icmp
+	ICMP
+
+--dport
+	destination port
+
+--sport
+	source port
+
+
+-m state --state NEW,ESTABLISHED
+
+or
+
+-m conntrack --ctstate NEW,ESTABLISHED
+
+	stateful firewall
+
+
+-j ACCEPT
+	allow traffic
+
+-j DROP
+	drop traffic silently
+
+-j REJECT
+	reject traffic and reply back
+
+================================================
+              IPTABLES EXAMPLES
+================================================
+
+Allow SSH as server:
+
+iptables -A INPUT -s 10.10.0.40 -d 172.16.82.106 -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
+
+iptables -A OUTPUT -s 172.16.82.106 -d 10.10.0.40 -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
+
+
+Allow SSH as client:
+
+iptables -A OUTPUT -s 172.16.82.106 -d 10.10.0.40 -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
+
+iptables -A INPUT -s 10.10.0.40 -d 172.16.82.106 -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
+
+
+Allow inbound ping:
+
+iptables -A INPUT -s 10.10.0.40 -d 172.16.82.106 -p icmp --icmp-type 8 -j ACCEPT
+
+iptables -A OUTPUT -s 172.16.82.106 -d 10.10.0.40 -p icmp --icmp-type 0 -j ACCEPT
+
+
+Allow outbound ping:
+
+iptables -A OUTPUT -s 172.16.82.106 -d 10.10.0.40 -p icmp --icmp-type 8 -j ACCEPT
+
+iptables -A INPUT -s 10.10.0.40 -d 172.16.82.106 -p icmp --icmp-type 0 -j ACCEPT
+
+
+Change policy to DROP:
+
+iptables -P INPUT DROP
+iptables -P OUTPUT DROP
+
+
+List rules:
+
+iptables -L
+iptables -S
+
+
+Flush rules:
+
+iptables -F
+
+================================================
+              NFTABLES SYNTAX
+================================================
+
+NFTABLES ORDER:
+
+	1. Create table
+	2. Create chains
+	3. Create rules
+	4. Test
+	5. Change policy to DROP
+
+
+Create table:
+
+nft add table ip CCTC
+
+
+Create INPUT base chain:
+
+nft add chain ip CCTC INPUT { type filter hook input priority 0 \; policy accept \;}
+
+
+Create OUTPUT base chain:
+
+nft add chain ip CCTC OUTPUT { type filter hook output priority 0 \; policy accept \;}
+
+
+Verify table:
+
+nft list table ip CCTC
+
+
+Rule format:
+
+nft add rule ip CCTC INPUT [matches] accept
+
+nft add rule ip CCTC OUTPUT [matches] accept
+
+
+ip
+	IPv4 family
+
+CCTC
+	table name
+
+INPUT / OUTPUT
+	chain names
+
+type filter
+	firewall filtering chain
+
+hook input
+	traffic coming into local host
+
+hook output
+	traffic leaving local host
+
+priority 0
+	normal priority
+
+policy accept
+	default allow
+
+policy drop
+	default deny
+
+================================================
+              NFTABLES MATCHES
+================================================
+
+ip saddr
+	source IP/subnet
+
+ip daddr
+	destination IP/subnet
+
+tcp dport
+	TCP destination port
+
+tcp sport
+	TCP source port
+
+udp dport
+	UDP destination port
+
+udp sport
+	UDP source port
+
+icmp type 8
+	ping request
+
+icmp type 0
+	ping reply
+
+ct state { new, established }
+	new and established traffic
+
+ct state { established }
+	already-open connection only
+
+
+IMPORTANT:
+	states are lowercase:
+		new
+		established
+		related
+		invalid
+
+	chain names usually uppercase:
+		INPUT
+		OUTPUT
+
+	hooks are lowercase:
+		hook input
+		hook output
+
+================================================
+              NFTABLES EXAMPLES
+================================================
+
+Allow SSH as server:
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 tcp dport 22 ct state { new, established } accept
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 tcp sport 22 ct state { established } accept
+
+
+Allow SSH as client:
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 tcp dport 22 ct state { new, established } accept
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 tcp sport 22 ct state { established } accept
+
+
+Allow inbound ping:
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 icmp type 8 accept
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 icmp type 0 accept
+
+
+Allow outbound ping:
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 icmp type 8 accept
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 icmp type 0 accept
+
+
+Allow TCP port 5050 both directions:
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 tcp dport 5050 ct state { new, established } accept
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 tcp sport 5050 ct state { established } accept
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 tcp dport 5050 ct state { new, established } accept
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 tcp sport 5050 ct state { established } accept
+
+
+Allow UDP port 5050 both directions:
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 udp dport 5050 accept
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 udp sport 5050 accept
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 udp dport 5050 accept
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 udp sport 5050 accept
+
+
+Change policy to DROP:
+
+nft add chain ip CCTC INPUT { \; policy drop \;}
+
+nft add chain ip CCTC OUTPUT { \; policy drop \;}
+
+
+List rules:
+
+nft list ruleset
+
+nft list table ip CCTC
+
+
+Flush everything:
+
+nft flush ruleset
+
+================================================
+       IPTABLES <--> NFTABLES TRANSLATION
+================================================
+
+iptables
+
+iptables -A INPUT [matches] -j ACCEPT
+
+↓
+
+nftables
+
+nft add rule ip CCTC INPUT [matches] accept
 
 ------------------------------------------------
-kernel
+Translation Dictionary
 ------------------------------------------------
-Module loading/unloading: insmod, rmmod, modprobe
-/etc/modprobe.d/ directory for module config
+
+iptables                 nftables
+---------                ---------------------
+
+-A                       add rule
+
+INPUT                    INPUT
+
+OUTPUT                   OUTPUT
+
+FORWARD                  FORWARD
+
+-s                       ip saddr
+
+-d                       ip daddr
+
+-p tcp                   tcp
+
+-p udp                   udp
+
+--dport                  tcp dport / udp dport
+
+--sport                  tcp sport / udp sport
+
+-p icmp --icmp-type      icmp type
+
+-m state --state         ct state
+
+-m conntrack --ctstate   ct state
+
+-j ACCEPT                accept
+
+-j DROP                  drop
+
+-j REJECT                reject
+
+-P INPUT DROP            add chain ... policy drop
+
+-L                       list ruleset
+
+-F                       flush ruleset
 
 ------------------------------------------------
-shell startup
+Example Translation
 ------------------------------------------------
-.bashrc, .bash_profile, .profile for shell init
-.zshrc, .zprofile for Zsh shell init
 
-------------------------------------------------
-desktop env
-------------------------------------------------
-GNOME/KDE/Xfce startup and logout scripts
-~/.config/autostart for user-level startup apps
+iptables:
 
-------------------------------------------------
-package management
-------------------------------------------------
-apt, yum, dnf for pkg installation/removal
-/etc/apt/apt.conf.d/ , /etc/yum/pluginconf.d/ for pkg manager config/autostart
+iptables -A INPUT -s 10.10.0.40 -d 172.16.82.112 -p tcp --dport 22 -m state --state NEW,ESTABLISHED -j ACCEPT
 
-------------------------------------------------
-udev rules
-------------------------------------------------
-/etc/udev/rules.d/ for defining rules for dev events
-/lib/udev/rules.d/ for sys wide dev rules
 
-------------------------------------------------
-cron jobs
-------------------------------------------------
-/etc/cron.d/ , /etc/cron.daily/ , etc. for schtasks
-crontab -e to edit user cron jobs (-l to list)
+nftables:
 
-------------------------------------------------
-git
-------------------------------------------------
-git hooks (pre-commit, post-merge, commit, push, merge, for schtasks
-located in .git/hooks/ dir of a Git repo
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 tcp dport 22 ct state { new, established } accept
 
-------------------------------------------------
-ssh
-------------------------------------------------
-~/.ssh/rc for SSH client-side scripts
-located /etc/ssh/sshd_config for SSH server-side conf
 
-------------------------------------------------
-app config
-------------------------------------------------
-conf files (e.g: /etc/ssh/sshd_config , /etc/nginx/nginx.conf) for app specific settings
+================================================
+              COMMON LAB PATTERN
+================================================
+
+If the question says:
+
+"Allow NEW and ESTABLISHED traffic from Pivot to T2 via SSH"
+
+That means:
+
+Pivot is client.
+T2 is server.
+SSH is tcp/22.
+
+On T2:
+
+INPUT:
+	Pivot --> T2
+	dport 22
+	new, established
+
+OUTPUT:
+	T2 --> Pivot
+	sport 22
+	established
+
+
+nft:
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 tcp dport 22 ct state { new, established } accept
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 tcp sport 22 ct state { established } accept
+
+
+If the question says:
+
+"Allow T2 to connect to Pivot via SSH"
+
+That means:
+
+T2 is client.
+Pivot is server.
+SSH is tcp/22.
+
+On T2:
+
+OUTPUT:
+	T2 --> Pivot
+	dport 22
+	new, established
+
+INPUT:
+	Pivot --> T2
+	sport 22
+	established
+
+
+nft:
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 tcp dport 22 ct state { new, established } accept
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 tcp sport 22 ct state { established } accept
+
+================================================
+          QUESTION 2 NFTABLES TEMPLATE
+================================================
+
+Pivot:
+	10.10.0.40
+
+T2:
+	172.16.82.112
+
+Table:
+	CCTC
+
+Family:
+	ip
+
+
+Step 1: Create table
+
+nft add table ip CCTC
+
+
+Step 2: Create base chains
+
+nft add chain ip CCTC INPUT { type filter hook input priority 0 \; policy accept \;}
+
+nft add chain ip CCTC OUTPUT { type filter hook output priority 0 \; policy accept \;}
+
+
+Step 3: Allow SSH/TELNET/RDP both directions
+
+T2 as server:
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 tcp dport { 22, 23, 3389 } ct state { new, established } accept
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 tcp sport { 22, 23, 3389 } ct state { established } accept
+
+
+T2 as client:
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 tcp dport { 22, 23, 3389 } ct state { new, established } accept
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 tcp sport { 22, 23, 3389 } ct state { established } accept
+
+
+Step 4: Change policy to DROP
+
+nft add chain ip CCTC INPUT { \; policy drop \;}
+
+nft add chain ip CCTC OUTPUT { \; policy drop \;}
+
+
+Step 5: Allow ICMP both directions
+
+Pivot pings T2:
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 icmp type 8 accept
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 icmp type 0 accept
+
+
+T2 pings Pivot:
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 icmp type 8 accept
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 icmp type 0 accept
+
+
+Step 6: Allow TCP/UDP 5050 and 5150 both directions
+
+TCP server side:
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 tcp dport { 5050, 5150 } ct state { new, established } accept
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 tcp sport { 5050, 5150 } ct state { established } accept
+
+
+TCP client side:
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 tcp dport { 5050, 5150 } ct state { new, established } accept
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 tcp sport { 5050, 5150 } ct state { established } accept
+
+
+UDP server side:
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 udp dport { 5050, 5150 } accept
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 udp sport { 5050, 5150 } accept
+
+
+UDP client side:
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 udp dport { 5050, 5150 } accept
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 udp sport { 5050, 5150 } accept
+
+
+Step 7: Allow HTTP both directions
+
+T2 as HTTP server:
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 tcp dport 80 ct state { new, established } accept
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 tcp sport 80 ct state { established } accept
+
+
+T2 as HTTP client:
+
+nft add rule ip CCTC OUTPUT ip saddr 172.16.82.112 ip daddr 10.10.0.40 tcp dport 80 ct state { new, established } accept
+
+nft add rule ip CCTC INPUT ip saddr 10.10.0.40 ip daddr 172.16.82.112 tcp sport 80 ct state { established } accept
+
+
+List rules:
+
+nft list ruleset
+
+
+On Pivot for flag:
+
+nc -lvnp 9002
+
+================================================
+              DO NOT GET LOCKED OUT
+================================================
+
+Before changing policy to DROP, run this in another T2 terminal:
+
+sleep 30 && nft flush ruleset
+
+
+If your rules work and you stay connected:
+
+CTRL+C
+
+to cancel the flush.
+
+
+If you lock yourself out:
+
+wait 30 seconds
+
+================================================
+                  FINAL CHEATS
+================================================
+
+INPUT dport
+	someone is connecting TO me
+
+OUTPUT sport
+	I am replying as the server
+
+
+OUTPUT dport
+	I am connecting OUT as the client
+
+INPUT sport
+	they are replying back to me
+
+
+TCP usually needs state:
+	ct state { new, established }
+
+UDP usually does not need state in this class.
+
+ICMP:
+	request = 8
+	reply   = 0
+
+
+iptables:
+	-j ACCEPT
+
+nftables:
+	accept
+
+
+iptables:
+	-s
+
+nftables:
+	ip saddr
+
+
+iptables:
+	-d
+
+nftables:
+	ip daddr
+
+
+iptables:
+	--dport
+
+nftables:
+	tcp dport
+	udp dport
+
+
+iptables:
+	--sport
+
+nftables:
+	tcp sport
+	udp sport
 
 ================================================

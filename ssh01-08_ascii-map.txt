@@ -1,0 +1,392 @@
+DONOVIAN RED NETWORK MAP — NET2 / TASK 4 SSH TUNNELING
+
+CREDENTIALS
+Student side:
+  net2_student8 / password8
+
+Donovia side:
+  net2_comrade8 / privet8
+
+Blue host user:
+  student / password
+
+Tunnel port range:
+  20800–20899
+
+
+CRITICAL REACHABILITY RULES
+blueinternethost can ONLY directly reach:
+  10.49.49.85:23
+
+blueinternethost CANNOT directly reach:
+  192.168.0.0/24
+  172.16.0.0/24
+
+Do not skip pivots.
+
+SSH-01 does NOT reach everything.
+SSH-04 does NOT reach everything.
+Every pivot only reaches confirmed downstream hosts.
+
+
+TOPOLOGY
+
+blueinternethost
+  |
+  | telnet 10.49.49.85:23
+  v
+SSH-01 / T5
+  hostname: net-ssh-01
+  external: 10.49.49.85:23
+  internal: 192.168.0.10/24
+  services:
+    21 FTP
+    22 SSH
+    23 Telnet
+    80 HTTP
+  can reach:
+    192.168.0.20 SSH-02
+    192.168.0.30 SSH-03
+    192.168.0.40 SSH-04
+  answer:
+    Tatu Ylonen
+
+        |
+        +--> SSH-02
+        |     IP: 192.168.0.20
+        |     reachable from: SSH-01
+        |     services:
+        |       21 FTP
+        |       80 HTTP
+        |       1111 fake
+        |       2222 fake
+        |       3333 SSH
+        |     can reach:
+        |       192.168.0.50 SSH-05
+        |     answer:
+        |       Helsinki University of Technology
+        |
+        |       |
+        |       v
+        |     SSH-05
+        |       IP: 192.168.0.50
+        |       reachable from: SSH-02 only
+        |       services:
+        |         21 FTP
+        |         80 HTTP
+        |       found:
+        |         FTP flag.png
+        |       answer:
+        |         RFC 4251
+        |
+        +--> SSH-03
+        |     IP: 192.168.0.30
+        |     reachable from: SSH-01
+        |     services:
+        |       80 HTTP
+        |       4444 flag service
+        |     answer:
+        |       Finland
+        |
+        +--> SSH-04
+              IP: 192.168.0.40
+              reachable from: SSH-01
+              services:
+                21 FTP
+                80 HTTP
+                5555 SSH
+              can reach:
+                172.16.0.60 SSH-06 on 21, 23, 80
+              restrictions:
+                /usr/bin/ssh permission denied
+                cannot SSH onward from inside SSH-04
+                172.16.0.60:22 did NOT respond from SSH-04
+              answer:
+                AES
+
+              |
+              v
+            SSH-06
+              IP: 172.16.0.60/24
+              reachable from: SSH-04
+              services:
+                21 FTP
+                22 SSH locally/listening
+                23 Telnet
+                80 HTTP
+              known access:
+                tunnel 172.16.0.60:23 back to blue, then telnet
+              can reach:
+                172.16.0.70 SSH-07
+                172.16.0.80 SSH-08
+                172.16.0.90 SSH-09
+              important:
+                from SSH-06, this works:
+                  ssh -p 2222 net2_comrade8@172.16.0.90
+              answer:
+                OpenSSH
+
+              |
+              +--> SSH-07
+              |     IP: 172.16.0.70
+              |     reachable from: SSH-06
+              |     service:
+              |       1337 flag service
+              |     answer:
+              |       Shellshock
+              |
+              +--> SSH-08
+              |     IP: 172.16.0.80
+              |     reachable from: SSH-06
+              |     services:
+              |       21 FTP, anonymous denied
+              |       80 HTTP
+              |       3389 flag service
+              |     HTTP files:
+              |       /hint-7.png
+              |       /hint-8.png
+              |     answer:
+              |       Diffie-Hellman
+              |
+              v
+            SSH-09
+              IP: 172.16.0.90
+              reachable from: SSH-06
+              services:
+                21 FTP
+                80 HTTP
+                2222 SSH
+              can reach:
+                172.16.0.100 SSH-10
+              restrictions:
+                /usr/bin/ssh permission denied
+                /usr/bin/telnet permission denied
+                /usr/bin/busybox permission denied
+                /usr/bin/curl permission denied
+                /usr/bin/ftp permission denied
+                python3 works
+                telnetlib works
+                netcat exists as netcat, not nc
+                openssl runs, but s_client fails on plaintext telnet
+              answers:
+                Terrapin
+                172.16.0.100
+
+              |
+              v
+            SSH-10
+              IP: 172.16.0.100
+              reachable from: SSH-09
+              services:
+                21 FTP
+                23 Telnet
+                80 HTTP
+              HTTP file:
+                /hint.png
+              hint:
+                log into SSH-10
+                run tcpdump
+                ignore telnet traffic
+                find repeated 8-character pattern in hex dump
+              final answer:
+                badbeef5
+
+
+WORKING CONNECTION METHODS
+
+1. blueinternethost -> SSH-01 / T5
+
+Terminal — blueinternethost:
+  telnet 10.49.49.85
+
+Login:
+  net2_student8
+  password8
+
+
+2. SSH-01 reverse tunnel back to blue
+
+Terminal — SSH-01:
+  ssh -N -R 20822:127.0.0.1:22 student@10.49.231.248
+
+Result:
+  blue localhost:20822 reaches SSH-01:22
+
+
+3. blue -> SSH-01 over reverse tunnel
+
+Terminal — blueinternethost:
+  ssh -p 20822 net2_student8@127.0.0.1
+
+Password:
+  password8
+
+
+4. blue -> SSH-04 through SSH-01
+
+Terminal — blueinternethost:
+  ssh -J net2_student8@127.0.0.1:20822 -p 5555 net2_student8@192.168.0.40
+
+Passwords:
+  password8
+  password8
+
+
+5. Tunnel SSH-06 telnet back to blue through SSH-01 -> SSH-04
+
+Terminal — blueinternethost:
+  ssh -N \
+    -J net2_student8@127.0.0.1:20822 \
+    -p 5555 \
+    -L 20860:172.16.0.60:23 \
+    net2_student8@192.168.0.40
+
+Passwords:
+  password8
+  password8
+
+Then:
+
+Terminal — blueinternethost:
+  telnet 127.0.0.1 20860
+
+Login:
+  net2_comrade8
+  privet8
+
+
+6. SSH-06 -> SSH-09
+
+Terminal — SSH-06:
+  ssh -p 2222 net2_comrade8@172.16.0.90
+
+Password:
+  privet8
+
+
+7. SSH-09 -> SSH-10 using Python telnetlib
+
+Because SSH-09 blocks telnet/ssh/busybox/curl/ftp, use Python telnetlib.
+
+Terminal — SSH-09:
+  python3 - <<'PY'
+import telnetlib, time, sys
+
+HOST = "172.16.0.100"
+USER = b"net2_comrade8\n"
+PASS = b"privet8\n"
+
+tn = telnetlib.Telnet(HOST, 23, timeout=10)
+
+print(tn.read_until(b"login:", timeout=10).decode("latin1", "ignore"), end="")
+tn.write(USER)
+
+print(tn.read_until(b"Password:", timeout=10).decode("latin1", "ignore"), end="")
+tn.write(PASS)
+
+time.sleep(1)
+print(tn.read_very_eager().decode("latin1", "ignore"), end="")
+
+tn.write(b"tcpdump -XX -i any 'not port 23'\n")
+
+while True:
+    data = tn.read_some()
+    if data:
+        sys.stdout.write(data.decode("latin1", "ignore"))
+        sys.stdout.flush()
+PY
+
+
+WHY PYTHON TELNETLIB WAS NEEDED
+
+Raw /dev/tcp reached SSH-10:23 but only showed telnet negotiation bytes:
+
+  ��%��&���� ��#��'��$
+
+That proved:
+  reachability was good
+  telnet negotiation was the issue
+  plain TCP/FIFO relay was insufficient
+  Python telnetlib correctly handled negotiation
+
+
+FAILED / BAD METHODS
+
+Do NOT use these assumptions:
+
+  blue -> 192.168.0.0/24 directly
+  blue -> 172.16.0.0/24 directly
+  SSH-01 -> all later hosts directly
+  SSH-04 -> SSH-06 via SSH port 22
+  SSH-04 outbound ssh
+  SSH-09 native ssh
+  SSH-09 native telnet
+  SSH-09 busybox telnet
+  SSH-09 openssl s_client to telnet
+
+Failed SSH-09 tools:
+  busybox: Permission denied
+  telnet: Permission denied
+  ssh: Permission denied
+  curl: Permission denied
+  ftp: Permission denied
+  openssl s_client: wrong version number because telnet is plaintext
+
+FIFO relay tried on SSH-09:
+  D=/dev/shm/net2_comrade8
+  mkfifo "$D/p"
+  netcat -l -p 20810 < "$D/p" | netcat 172.16.0.100 23 > "$D/p"
+
+Result:
+  TCP connection succeeded, but no clean login prompt due to telnet negotiation.
+
+
+FINAL SSH-10 TCPDUMP EVIDENCE
+
+tcpdump showed repeated ICMP payload bytes:
+
+  badb eef5 badb eef5 badb eef5 ...
+
+Concatenated 8-character pattern:
+
+  badbeef5
+
+Final SSH-10 answer:
+
+  badbeef5
+
+
+ALL ANSWERS
+
+SSH-01:
+  Tatu Ylonen
+
+SSH-02:
+  Helsinki University of Technology
+
+SSH-03:
+  Finland
+
+SSH-04:
+  AES
+
+SSH-05:
+  RFC 4251
+
+SSH-06:
+  OpenSSH
+
+SSH-07:
+  Shellshock
+
+SSH-08:
+  Diffie-Hellman
+
+SSH-09:
+  Terrapin
+
+SSH-09 second question:
+  172.16.0.100
+
+SSH-10:
+  badbeef5

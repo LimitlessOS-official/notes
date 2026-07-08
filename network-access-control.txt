@@ -1,0 +1,290 @@
+================================================================================
+SNORT & NETWORK ACCESS CONTROL STUDY GUIDE
+
+This cheatsheet contains exact commands, rule syntaxes, step-by-step
+breakdowns, and direct answers to help you solve your signatures CTFd challenges.
+
+================================================================================
+SECTION 1: RUNNING SNORT FROM THE COMMAND LINE (CLI)
+
+COMMAND TYPE A: Sniffing Live Traffic (Daemon Mode)
+
+Command:
+sudo snort -D -i eth0 -l /var/log/snort/ -c /etc/snort/snort.conf
+
+What it does:
+This command boots up Snort to capture real-time traffic off a live network card
+and run it against your main configuration file in the background.
+
+Option Breakdown:
+
+"sudo" = Runs the program with root admin permissions (required to sniff traffic).
+
+"-D" = Daemon mode. Runs Snort in the background so it doesn't freeze your terminal.
+
+"-i eth0" = Interface. Tells Snort to listen on the network card named "eth0".
+
+"-l /var/log/snort/" = Log Directory. Where Snort saves alerts and packet captures.
+
+"-c /etc/snort/snort.conf" = Config File. Tells Snort which configuration rules to load.
+
+COMMAND TYPE B: Reading/Analyzing a PCAP File (Offline Mode)
+
+Command:
+sudo snort -r /home/activity_resources/pcaps/ids.pcap -c /etc/snort/rules/icmp.rules
+
+What it does:
+This command analyzes pre-recorded traffic (a .pcap file) against a specific
+rule file to count matches and generate alerts.
+
+Option Breakdown:
+
+"-r" = Read mode. Tells Snort to process a PCAP file instead of live traffic.
+
+"/home/activity_resources/pcaps/ids.pcap" = The exact file path to the packet capture.
+
+"-c" = Config/Rule loader. Tells Snort which rules to run against the PCAP.
+
+"/etc/snort/rules/icmp.rules" = The specific rule file you want to use.
+
+COMMAND TYPE C: Troubleshooting & Syntax Testing
+
+Command:
+sudo snort -T -c /etc/snort/snort.conf
+
+What it does:
+This command tests your configuration and rule files for syntax errors without
+actually running a scan. It will tell you exactly which line has an error.
+
+Option Breakdown:
+
+"-T" = Test mode. Instructs Snort to check for typos, missing semicolons, or bad paths.
+
+================================================================================
+SECTION 2: SCENARIO-SPECIFIC RULE FILE MAPPING (QUESTIONS 2 TO 5)
+
+In Snort, rules are typically organized into separate files inside the directory:
+/etc/snort/rules/
+
+Use this map to determine which rule filename applies to each challenge:
+
+TCP Flags Rule (Null / Xmas / SF Scans)
+
+Filename: nm.rules
+
+Context: "nm" stands for Network Mapper (Nmap). Any rule designed to detect
+abnormal TCP flags (such as No TCP Flags set, or URG+PSH+FIN flags set) will
+be located in this file.
+
+NOP Sled Rule (Exploits / Buffer Overflows)
+
+Filename: shell.rules
+
+Context: Shellcode and exploit detection. NOP Sleds (indicated by repeating
+HEX characters like 90 90 90 90) are common evasion and exploitation patterns.
+Rules looking for these patterns are placed here.
+
+DNS Zone Transfer Rule (Information Gathering)
+
+Filename: dzt.rules
+
+Context: "dzt" stands for DNS Zone Transfer. This file contains rules specifically
+designed to catch unauthorized zone transfer attempts (CVE-1999-0532).
+
+ICMP Message Rule (Pings & Probes)
+
+Filename: icmp.rules
+
+Context: This file contains rules designed to inspect, alert on, and log basic
+ICMP protocol messages (such as Echo Requests, Echo Replies, and unreachable errors).
+
+================================================================================
+SECTION 3: WRITING CUSTOM SNORT RULES (LOW-LEVEL ANATOMY)
+
+A Snort rule consists of a Header (WHO/WHERE) and Options (WHAT to look for).
+
+Header Format:
+[ACTION] [PROTOCOL] [SRC_IP] [SRC_PORT] [DIRECTION] [DST_IP] [DST_PORT]
+
+Rule Headers Explained:
+
+ACTION:
+"alert" = Generate an alert and log the packet.
+
+PROTOCOL:
+"icmp" = Internet Control Message Protocol.
+"tcp" = Transmission Control Protocol.
+"udp" = User Datagram Protocol.
+"ip" = Matches any IP traffic.
+
+IP ADDRESSES:
+"any" = Matches any IP address.
+"10.3.0.0/24" = Matches only IPs inside the 10.3.0.0 subnet.
+
+PORT NUMBERS:
+"any" = Matches any source/destination port.
+"22" = Port 22 (SSH).
+"[139,445]" = Multiple ports (SMB/CIFS) grouped together inside square brackets.
+
+DIRECTION OPERATOR:
+"->" = Traffic flowing from Source (left) to Destination (right).
+"<>" = Traffic flowing in either direction.
+
+Rule Options Explained (Inside the Parentheses):
+
+Inside the parentheses, every option is separated by a semicolon ";".
+Option names are linked to their arguments using a colon ":".
+
+Message option:
+msg:"DMZ Ping";
+(Specifies the custom alert text displayed in the log)
+
+Plaintext Content option:
+content:"anonymous";
+(Searches the packet payload for the exact ASCII text "anonymous")
+
+Hexadecimal Content option:
+content:"|DEADBEEF|";
+(Searches the payload for raw binary/hex data. Hex bytes must be wrapped in pipes "|")
+
+Non-case-sensitive option:
+nocase;
+(Modified content search. Tells Snort to ignore capitalization differences)
+
+ICMP Type option:
+itype:8;
+(Filters on the ICMP type. Type 8 is an Echo Request/Ping)
+
+ICMP Code option:
+icode:0;
+(Filters on the ICMP code. Code 0 is the default sub-code for Echo Request)
+
+Flow option:
+flow:stateless;
+(Forces Snort to check the packet even if there is no established TCP connection)
+
+Flags option:
+flags:0;
+(Filters on TCP flags. A value of 0 means absolutely NO TCP flags are set - Null Scan)
+
+Threshold option (Rate Limit):
+threshold: type both, track by_src, count 3, seconds 10;
+(Filters brute force. It limits logging by only alerting once per 10 seconds
+when a single source IP triggers the rule 3 times)
+
+Signature ID option:
+sid:1000001;
+(Unique number to identify the rule. Custom rules must be 1000001 or higher)
+
+================================================================================
+SECTION 4: BLUEPRINTS FOR CREATING THE LAB RULES (QUESTIONS 7 - 14)
+
+BLUEPRINT A: ICMP Hex Rule (Question 7 & 8)
+
+Requirement: Alert on any ICMP from any source to any destination. Msg is "Cows".
+Hex content is DEADBEEF. sid is 1000001. NO SPACES inside the parentheses.
+
+Perfect Rule Format:
+alert icmp any any -> any any (msg:"Cows";content:"|DEADBEEF|";sid:1000001;)
+
+To verify your rule file matches the confirmation MD5:
+
+Write the rule to cows.rules:
+echo -n 'alert icmp any any -> any any (msg:"Cows";content:"|DEADBEEF|";sid:1000001;)' > cows.rules
+
+Run the check command:
+cat cows.rules | md5sum
+(Should output MD5: 5e68869ecd077d427c182a392fa8b858)
+
+To count alerts on the PCAP using this rule:
+sudo snort -c cows.rules -r /home/activity_resources/pcaps/ids.pcap
+
+BLUEPRINT B: ICMP Echo Request Subnet Rule (Question 9 & 10)
+
+Requirement: Alert on any ICMP Echo Request (Type 8, Code 0) going to 10.3.0.0/24.
+Msg is "DMZ Ping". sid is 1000002. NO SPACES inside parentheses.
+
+Perfect Rule Format:
+alert icmp any any -> 10.3.0.0/24 any (msg:"DMZ Ping";itype:8;icode:0;sid:1000002;)
+
+To verify your rule file matches the confirmation MD5:
+
+Write the rule to dmz.rules:
+echo -n 'alert icmp any any -> 10.3.0.0/24 any (msg:"DMZ Ping";itype:8;icode:0;sid:1000002;)' > dmz.rules
+
+Run the check command:
+cat dmz.rules | md5sum
+(Should output MD5: 67b29afecb382501f4bddbe0b7ad4b6e)
+
+To count alerts on the PCAP using this rule:
+sudo snort -c dmz.rules -r /home/activity_resources/pcaps/ids.pcap
+
+BLUEPRINT C: SSH Brute Force Rule (Question 11)
+
+Requirement: Track 3 SSH (TCP Port 22) authentication attempts within 10 seconds
+coming from a specific source, using the "both" threshold.
+
+Rule Format:
+alert tcp any any -> any 22 (msg:"SSH Brute Force Attempt";flow:to_server;threshold:type both,track by_src,count 3,seconds 10;sid:1000003;)
+
+To count alerts on the PCAP using this rule:
+
+Write this rule inside a file named ssh.rules.
+
+Run the file against the PCAP:
+sudo snort -c ssh.rules -r /home/activity_resources/pcaps/ids.pcap
+
+BLUEPRINT D: Null Scan Rule (Question 13)
+
+echo 'alert tcp any any -> 10.3.0.0/24 any (msg:"TCP Null Scan";flags:0;flow:stateless;sid:1000004;)' > null.rules
+sudo snort -r /home/activity_resources/pcaps/ids.pcap -c null.rules -A console 2>/dev/null | grep -c 'TCP Null Scan'
+
+Requirement: Detect TCP Null scan (no TCP flags set) to the 10.3.0.0/24 network,
+regardless of the traffic flow state (stateless).
+
+Rule Format:
+alert tcp any any -> 10.3.0.0/24 any (msg:"Null Scan";flow:stateless;flags:0;sid:1000004;)
+
+To count alerts on the PCAP using this rule:
+
+Save the rule inside a file named null.rules.
+
+Run the rule against the PCAP:
+sudo snort -c null.rules -r /home/activity_resources/pcaps/ids.pcap
+
+BLUEPRINT E: WannaCry / SMB Attack Vector Rule (Question 14)
+
+Requirement: SMB and CIFS protocols use ports 139 and 445. Detect traffic on these
+identified ports going to the 10.0.0.0/8 network, regardless of the traffic flow state.
+
+Rule Format:
+alert tcp any any -> 10.0.0.0/8 [139,445] (msg:"WannaCry SMB Attempt";flow:stateless;sid:1000005;)
+
+To count alerts on the PCAP using this rule:
+
+Save the rule inside a file named wannacry.rules.
+
+Run the rule against the PCAP:
+sudo snort -c wannacry.rules -r /home/activity_resources/pcaps/ids.pcap
+
+SECTION 5: INSTRUCTIONS FOR COUNTING ALERTS
+
+When you run Snort against a PCAP file using any of the rules above, Snort
+will process the packets and output a summary statistic report on your terminal screen.
+
+How to find the alert count:
+
+Run the command:
+sudo snort -c cows.rules -r /home/activity_resources/pcaps/ids.pcap
+
+Scroll through the terminal output until you see the banner:
+"Action Stats:" or "Alerts:"
+
+Look for the "Alerts" count under the Action Stats table. It will look like this:
+
+Action Stats:
+Alerts:            XXX (XX.XXX%)
+Logged:            XXX (XX.XXX%)
+Passed:            0   (0.000%)
+
+The number shown next to "Alerts" is the exact number of alerts created!
