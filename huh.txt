@@ -1,17 +1,2 @@
-shrek@peter-griffin:~$ printf 'SITE HELP\r\nQUIT\r\n' | netcat -w 3 127.0.0.1 21
-220 ProFTPD Server (Debian) [::ffff:127.0.0.1]
-214-The following SITE commands are recognized (* =>'s unimplemented)
- CPFR <sp> pathname
- CPTO <sp> pathname
- UTIME <sp> YYYYMMDDhhmm[ss] <sp> path
- SYMLINK <sp> source <sp> destination
- RMDIR <sp> path
- MKDIR <sp> path
- The following SITE extensions are recognized:
- RATIO -- show all ratios in effect
- QUOTA
- HELP
- CHGRP
- CHMOD
-214 Direct comments to root@peter-griffin.kinetic
-221 Goodbye.
+printf 'USER shrek\r\nPASS onions\r\nSITE CPFR /etc/hostname\r\nSITE CPTO /tmp/hostname-copy\r\nQUIT\r\n' \
+| netcat -w 5 127.0.0.1 21
