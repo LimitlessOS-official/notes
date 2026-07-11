@@ -1,38 +1,14 @@
-shrek@peter-griffin:~$ id
-uid=1003(shrek) gid=1003(shrek) groups=1003(shrek)
-shrek@peter-griffin:~$ groups
-shrek
-shrek@peter-griffin:~$ find /home/ -maxdepth 3 -ls 2>/dev/null 
-   523265      4 drwxr-xr-x   5 root     root         4096 May 18 16:26 /home/
-   523270      4 drwxr-xr-x   3 debian   debian       4096 Jun  5  2025 /home/debian
-   523271      4 -rw-r--r--   1 debian   debian        220 Apr 18  2025 /home/debian/.bash_logout
-   523272      4 -rw-r--r--   1 debian   debian        807 Apr 18  2025 /home/debian/.profile
-   523273      4 -rw-r--r--   1 debian   debian       3526 Apr 18  2025 /home/debian/.bashrc
-   523274      4 drwx------   2 debian   debian       4096 Jun  5  2025 /home/debian/.ssh
-   523604      4 drwxr-xr-x   3 admin    admin        4096 May 18 16:26 /home/admin
-   523605      4 -rw-r--r--   1 admin    admin         220 Apr 18  2025 /home/admin/.bash_logout
-   523606      4 -rw-r--r--   1 admin    admin         807 Apr 18  2025 /home/admin/.profile
-   523607      4 -rw-r--r--   1 admin    admin        3526 Apr 18  2025 /home/admin/.bashrc
-   523267      4 drwx------   2 admin    admin        4096 May 18 16:26 /home/admin/.ssh
-   523608      4 drwx------   4 shrek    shrek        4096 Jul 10 20:34 /home/shrek
-   523280    484 -rw-r--r--   1 shrek    shrek      494006 Jul 10 13:48 /home/shrek/results.txt
-   523609      4 -rw-r--r--   1 shrek    shrek         220 Apr 18  2025 /home/shrek/.bash_logout
-   523610      4 -rw-r--r--   1 shrek    shrek         807 Apr 18  2025 /home/shrek/.profile
-   523611      4 -rw-r--r--   1 shrek    shrek        3526 Apr 18  2025 /home/shrek/.bashrc
-   654083      4 drwxr-xr-x   3 shrek    shrek        4096 Jul 10 20:33 /home/shrek/.local
-   654084      4 drwx------   3 shrek    shrek        4096 Jul 10 20:33 /home/shrek/.local/share
-   523277      4 -rw-------   1 shrek    shrek        3382 Jul 10 20:34 /home/shrek/.bash_history
-   523282      4 -rw-------   1 shrek    shrek          69 Jul 10 15:35 /home/shrek/.lesshst
-   523269      4 drwx------   2 shrek    shrek        4096 Jun  6 22:09 /home/shrek/.ssh
-   523276      0 -rw-------   1 shrek    shrek           0 May 18 16:26 /home/shrek/.ssh/authorized_keys
-   523278      4 -rw-r--r--   1 shrek    shrek         142 Jun  6 22:09 /home/shrek/.ssh/known_hosts.old
-   523279      4 -rw-------   1 shrek    shrek        1120 Jun  6 22:10 /home/shrek/.ssh/known_hosts
-   523281      4 -rwxr-xr-x   1 shrek    shrek         192 Jul 10 20:34 /home/shrek/passauth.sh
-shrek@peter-griffin:~$ cat passauth.sh 
-#!/bin/bash
-sed -i 's/^ssh_pwauth:\s*0/ssh_pwauth: 1/' /etc/cloud/cloud.cfg
-sed -i '/# %shrek        ALL=(ALL)       NOPASSWD: ALL/ c\%wheel        ALL=(ALL)       NOPASSWD: ALL' /etc/sudoers
-shrek@peter-griffin:~$ nano passauth.sh 
-shrek@peter-griffin:~$ ./passauth.sh 
-sed: couldn't open temporary file /etc/cloud/sedLEmOuZ: Permission denied
-sed: can't read /etc/sudoers: Permission denied
+shrek@peter-griffin:~$ ls -l /usr/lib/systemd/system/{hwclock,rc,cryptdisks,cryptdisks-early,x11-common,rcS,sudo}.service
+lrwxrwxrwx 1 root root 9 Jun 26  2025 /usr/lib/systemd/system/cryptdisks-early.service -> /dev/null
+lrwxrwxrwx 1 root root 9 Jun 26  2025 /usr/lib/systemd/system/cryptdisks.service -> /dev/null
+lrwxrwxrwx 1 root root 9 Jun 26  2025 /usr/lib/systemd/system/hwclock.service -> /dev/null
+lrwxrwxrwx 1 root root 9 Jun 26  2025 /usr/lib/systemd/system/rc.service -> /dev/null
+lrwxrwxrwx 1 root root 9 Jun 26  2025 /usr/lib/systemd/system/rcS.service -> /dev/null
+lrwxrwxrwx 1 root root 9 Dec 30  2025 /usr/lib/systemd/system/sudo.service -> /dev/null
+lrwxrwxrwx 1 root root 9 Jun 26  2025 /usr/lib/systemd/system/x11-common.service -> /dev/null
+shrek@peter-griffin:~$ getfacl
+-bash: getfacl: command not found
+shrek@peter-griffin:~$ test -w /usr/lib/systemd/system/sudo.service && echo WRITEABLE
+WRITEABLE
+shrek@peter-griffin:~$ systemctl cat sudo.service
+# Unit sudo.service is masked.
