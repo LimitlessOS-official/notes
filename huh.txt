@@ -1,14 +1,161 @@
-shrek@peter-griffin:~$ ls -l /usr/lib/systemd/system/{hwclock,rc,cryptdisks,cryptdisks-early,x11-common,rcS,sudo}.service
-lrwxrwxrwx 1 root root 9 Jun 26  2025 /usr/lib/systemd/system/cryptdisks-early.service -> /dev/null
-lrwxrwxrwx 1 root root 9 Jun 26  2025 /usr/lib/systemd/system/cryptdisks.service -> /dev/null
-lrwxrwxrwx 1 root root 9 Jun 26  2025 /usr/lib/systemd/system/hwclock.service -> /dev/null
-lrwxrwxrwx 1 root root 9 Jun 26  2025 /usr/lib/systemd/system/rc.service -> /dev/null
-lrwxrwxrwx 1 root root 9 Jun 26  2025 /usr/lib/systemd/system/rcS.service -> /dev/null
-lrwxrwxrwx 1 root root 9 Dec 30  2025 /usr/lib/systemd/system/sudo.service -> /dev/null
-lrwxrwxrwx 1 root root 9 Jun 26  2025 /usr/lib/systemd/system/x11-common.service -> /dev/null
-shrek@peter-griffin:~$ getfacl
--bash: getfacl: command not found
-shrek@peter-griffin:~$ test -w /usr/lib/systemd/system/sudo.service && echo WRITEABLE
-WRITEABLE
-shrek@peter-griffin:~$ systemctl cat sudo.service
-# Unit sudo.service is masked.
+  523271      4 -rw-r--r--   1 debian   debian        220 Apr 18  2025 /home/debian/.bash_logout
+   523272      4 -rw-r--r--   1 debian   debian        807 Apr 18  2025 /home/debian/.profile
+   523273      4 -rw-r--r--   1 debian   debian       3526 Apr 18  2025 /home/debian/.bashrc
+   523605      4 -rw-r--r--   1 admin    admin         220 Apr 18  2025 /home/admin/.bash_logout
+   523606      4 -rw-r--r--   1 admin    admin         807 Apr 18  2025 /home/admin/.profile
+   523607      4 -rw-r--r--   1 admin    admin        3526 Apr 18  2025 /home/admin/.bashrc
+   523280    484 -rw-r--r--   1 shrek    shrek      494006 Jul 10 13:48 /home/shrek/results.txt
+   523609      4 -rw-r--r--   1 shrek    shrek         220 Apr 18  2025 /home/shrek/.bash_logout
+   523610      4 -rw-r--r--   1 shrek    shrek         807 Apr 18  2025 /home/shrek/.profile
+   523611      4 -rw-r--r--   1 shrek    shrek        3526 Apr 18  2025 /home/shrek/.bashrc
+   523277      4 -rw-------   1 shrek    shrek        3382 Jul 10 20:34 /home/shrek/.bash_history
+   523283      4 -rw-------   1 shrek    shrek          69 Jul 10 20:51 /home/shrek/.lesshst
+   523276      0 -rw-------   1 shrek    shrek           0 May 18 16:26 /home/shrek/.ssh/authorized_keys
+   523278      4 -rw-r--r--   1 shrek    shrek         142 Jun  6 22:09 /home/shrek/.ssh/known_hosts.old
+   523279      4 -rw-------   1 shrek    shrek        1120 Jun  6 22:10 /home/shrek/.ssh/known_hosts
+   523281      4 -rwxr-xr-x   1 shrek    shrek         192 Jul 10 20:34 /home/shrek/passauth.sh
+shrek@peter-griffin:~$ grep -RniE 'password|passwd|secret|root|ssh' /home /opt/ /usr/local /var/www 2>/dev/null 
+/home/debian/.profile:8:# for ssh logins, install and configure the libpam-umask package.
+/home/debian/.bashrc:33:# set variable identifying the chroot you work in (used in the prompt below)
+/home/debian/.bashrc:34:if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
+/home/debian/.bashrc:35:    debian_chroot=$(cat /etc/debian_chroot)
+/home/debian/.bashrc:60:    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+/home/debian/.bashrc:62:    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+/home/debian/.bashrc:69:    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+/home/admin/.profile:8:# for ssh logins, install and configure the libpam-umask package.
+/home/admin/.bashrc:33:# set variable identifying the chroot you work in (used in the prompt below)
+/home/admin/.bashrc:34:if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
+/home/admin/.bashrc:35:    debian_chroot=$(cat /etc/debian_chroot)
+/home/admin/.bashrc:60:    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+/home/admin/.bashrc:62:    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+/home/admin/.bashrc:69:    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+/home/shrek/results.txt:157:./usr/share/icons/Adwaita/16x16/status/dialog-password-symbolic.symbolic.png
+/home/shrek/results.txt:1011:./usr/share/icons/Adwaita/96x96/status/dialog-password-symbolic.symbolic.png
+/home/shrek/results.txt:1665:./usr/share/icons/Adwaita/32x32/status/dialog-password-symbolic.symbolic.png
+/home/shrek/results.txt:2378:./usr/share/icons/Adwaita/48x48/status/dialog-password-symbolic.symbolic.png
+/home/shrek/results.txt:2993:./usr/share/icons/Adwaita/48x48/legacy/dialog-password.png
+/home/shrek/results.txt:3372:./usr/share/icons/Adwaita/24x24/status/dialog-password-symbolic.symbolic.png
+/home/shrek/results.txt:3976:./usr/share/icons/Adwaita/24x24/legacy/dialog-password.png
+/home/shrek/results.txt:4347:./usr/share/icons/Adwaita/64x64/status/dialog-password-symbolic.symbolic.png
+/home/shrek/results.txt:5025:./usr/share/icons/gnome/16x16/status/dialog-password.png
+/home/shrek/results.txt:5404:./usr/share/icons/gnome/22x22/status/dialog-password.png
+/home/shrek/results.txt:5774:./usr/share/icons/gnome/32x32/status/dialog-password.png
+/home/shrek/results.txt:6144:./usr/share/icons/gnome/48x48/status/dialog-password.png
+/home/shrek/results.txt:6513:./usr/share/icons/gnome/24x24/status/dialog-password.png
+/home/shrek/results.txt:6835:./usr/share/icons/gnome/256x256/status/dialog-password.png
+/home/shrek/.profile:8:# for ssh logins, install and configure the libpam-umask package.
+/home/shrek/.bashrc:33:# set variable identifying the chroot you work in (used in the prompt below)
+/home/shrek/.bashrc:34:if [ -z "${debian_chroot:-}" ] && [ -r /etc/debian_chroot ]; then
+/home/shrek/.bashrc:35:    debian_chroot=$(cat /etc/debian_chroot)
+/home/shrek/.bashrc:60:    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+/home/shrek/.bashrc:62:    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+/home/shrek/.bashrc:69:    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+/home/shrek/.bash_history:23:cd ./.ssh
+/home/shrek/.bash_history:52:history | grep password
+/home/shrek/.bash_history:53:history | grep ssh
+/home/shrek/.bash_history:65:ssh shrek@192.168.4.40
+/home/shrek/.bash_history:66:ssh shrek@192.168.4.62
+/home/shrek/.bash_history:193:ssh shrek@192.168.4.40
+/home/shrek/.ssh/known_hosts.old:1:|1|ZQaWOeuX9HG//ZlsQR3Fxngiokg=|VOnKjPOpbcv6VQ00bLvs0M6a/RE= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMG4Frdt7MUkKQEosvDpx8dR9ri5P7gFzXI8t3AZ1PKx
+/home/shrek/.ssh/known_hosts:1:|1|ZQaWOeuX9HG//ZlsQR3Fxngiokg=|VOnKjPOpbcv6VQ00bLvs0M6a/RE= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMG4Frdt7MUkKQEosvDpx8dR9ri5P7gFzXI8t3AZ1PKx
+/home/shrek/.ssh/known_hosts:2:|1|c0gdPB8CArEPJzXANlJzTdoYWgo=|gFQ/U9+qv20pENqLKOQnI9v5zDw= ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC4rRPwjvww4kkfPEVGhnTWBDPaf9I0nKIsA607YeNwKtLNbKyKq6Jw8FVMIgQn4SHDsMwmfWAQDO9XD7TYSQx5DukiJjwaJ3T2Vxkw93M01DsY7vmVtBOUNSg8pjqpsD9O8usJQIIVMqO5JpLDYVWlo9gJk/8V1TChl7V+TpbY1A5wVEw2CnZMrUQLmZvYN4p1jKi1OqwSvrNnpHgIHwPIyGWp7MLB9pr3WjXoyMNf2wVGfw2ypmICSrwcA2z5WEbv0kgqptem3cyE/y95xShfSzR4ecfnq2bJtjF5+B58p1RlZDpDUm15YIly4DWJocgXRHaM+qijrXjlzVKI9ASHHdpxOiqA4GHpuWY9W2QAjnnAVfZ8um59sSI43CFLhMkSpHPAJkBheuXgq0iVX6ltA6thFCQ4zyy/+XAYoO959Fv9pplW1C4AAzNQ7cuDi17DNPym+zClFrO6q0LqbWv35/oAjsWBfk+A7Y0lMyLQvgdnFXJHtc3Vw30PoA1lq4M=
+/home/shrek/.ssh/known_hosts:4:|1|Rlv7/bGoCcuBRVd7qmvV5GMOMn4=|NiXdnQe5B70Z9jLXGtClwLQWIkU= ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICW4fJIUpwRHsr+4sUWHi0neL7tkQxylpZo1pHsbF0a4
+/home/shrek/passauth.sh:2:sed -i 's/^ssh_pwauth:\s*0/ssh_pwauth: 1/' /etc/cloud/cloud.cfg
+/home/shrek/passauth.sh:3:sed -i '/# %shrek        ALL=(ALL)       NOPASSWD: ALL/ c\%wheel        ALL=(ALL)       NOPASSWD: ALL' /etc/sudoers
+/usr/local/man/man8/snort.8:46:.I chroot_directory
+/usr/local/man/man8/snort.8:217:after initialization.  This switch allows Snort to drop root privileges after
+/usr/local/man/man8/snort.8:333:.IP "-t chroot"
+/usr/local/man/man8/snort.8:334:Changes Snort's root directory to
+/usr/local/man/man8/snort.8:335:.I chroot
+/usr/local/man/man8/snort.8:337:to the chroot directory if chroot is used.
+/usr/local/lib/snort_dynamicpreprocessor/libsf_ssh_preproc.la:1:# libsf_ssh_preproc.la - a libtool library file
+/usr/local/lib/snort_dynamicpreprocessor/libsf_ssh_preproc.la:8:dlname='libsf_ssh_preproc.so.0'
+/usr/local/lib/snort_dynamicpreprocessor/libsf_ssh_preproc.la:11:library_names='libsf_ssh_preproc.so.0.0.0 libsf_ssh_preproc.so.0 libsf_ssh_preproc.so'
+/usr/local/lib/snort_dynamicpreprocessor/libsf_ssh_preproc.la:14:old_library='libsf_ssh_preproc.a'
+/usr/local/lib/snort_dynamicpreprocessor/libsf_ssh_preproc.la:25:# Version information for libsf_ssh_preproc.
+/usr/local/lib/pkgconfig/snort.pc:6:datarootdir=${prefix}/share
+/usr/local/lib/pkgconfig/snort.pc:7:datadir=${datarootdir}
+/usr/local/lib/pkgconfig/snort.pc:8:mandir=${datarootdir}/info
+/usr/local/lib/pkgconfig/snort.pc:9:infodir=${datarootdir}/info
+/usr/local/lib/pkgconfig/snort_output.pc:7:datarootdir=${prefix}/share
+/usr/local/lib/pkgconfig/snort_output.pc:8:datadir=${datarootdir}
+/usr/local/lib/pkgconfig/snort_output.pc:9:mandir=${datarootdir}/info
+/usr/local/lib/pkgconfig/snort_output.pc:10:infodir=${datarootdir}/info
+/usr/local/lib/pkgconfig/snort_preproc.pc:7:datarootdir=${prefix}/share
+/usr/local/lib/pkgconfig/snort_preproc.pc:8:datadir=${datarootdir}
+/usr/local/lib/pkgconfig/snort_preproc.pc:9:mandir=${datarootdir}/info
+/usr/local/lib/pkgconfig/snort_preproc.pc:10:infodir=${datarootdir}/info
+/usr/local/share/man/man8/snort.8:46:.I chroot_directory
+/usr/local/share/man/man8/snort.8:217:after initialization.  This switch allows Snort to drop root privileges after
+/usr/local/share/man/man8/snort.8:333:.IP "-t chroot"
+/usr/local/share/man/man8/snort.8:334:Changes Snort's root directory to
+/usr/local/share/man/man8/snort.8:335:.I chroot
+/usr/local/share/man/man8/snort.8:337:to the chroot directory if chroot is used.
+/usr/local/share/doc/snort/CREDITS:10:    * SSH preprocessor updates
+/usr/local/share/doc/snort/CREDITS:42:    * SSH preprocessor
+/usr/local/share/doc/snort/generators:39:ssh                        128 # SSH
+/usr/local/share/doc/snort/NEWS:46:            * Better chroot()'ing
+/usr/local/share/doc/snort/NEWS:397:            shouldn't be too much of a problem since you have to be root to
+/usr/local/share/doc/snort/README.ftptelnet:87:Because encrypted traffic (SSL) cannot be decoded, adding ports 22 (SSH) could
+/usr/local/share/doc/snort/README.PerfProfiling:162:  9                      ssh     0      26453      26453                7195       0.27          0.05         0.05
+/usr/local/share/doc/snort/README.http_inspect:679:* webroot *
+/usr/local/share/doc/snort/README.http_inspect:681:the web server root directory.  This generates much less false positives than 
+/usr/local/share/doc/snort/README.http_inspect:684:directory traversals go past the web server root directory, which
+/usr/local/share/doc/snort/README.http_inspect:776:webroot (alert on)
+/usr/local/share/doc/snort/README.http_inspect:792:webroot (alert on)
+/usr/local/share/doc/snort/README.http_inspect:811:webroot (alert on)
+/usr/local/share/doc/snort/README.http_inspect:838:webroot (alert on)
+/usr/local/share/doc/snort/README.http_inspect:854:webroot (alert on)
+/usr/local/share/doc/snort/README.http_inspect:1037:18    Webroot directory traversal
+/usr/local/share/doc/snort/INSTALL:516:done as root user):
+/usr/local/share/doc/snort/INSTALL:601:sshd_enable="YES"
+/usr/local/share/doc/snort/README.reload:72:config chroot
+/usr/local/share/doc/snort/README.reputation:259:       <snort root>/src/tools/control/snort_control  <path> 1361
+/usr/local/share/doc/snort/README.appid:242:directory structure, under ODP installation directory. The root path is specified
+/usr/local/share/doc/snort/README.ssh:1:SSH
+/usr/local/share/doc/snort/README.ssh:12:The SSH preprocessor detects the following exploits: Challenge-Response Buffer
+/usr/local/share/doc/snort/README.ssh:18:the attacks, the SSH preprocessor counts the number of bytes transmitted to the
+/usr/local/share/doc/snort/README.ssh:21:SSHv2 and CRC 32 only effects SSHv1, the SSH version string exchange is used to
+/usr/local/share/doc/snort/README.ssh:36:This option specifies which ports the SSH preprocessor should inspect traffic
+/usr/local/share/doc/snort/README.ssh:42:SSH session. The SSH vulnerabilities that Snort can detect all happen at the
+/usr/local/share/doc/snort/README.ssh:43:very beginning of an SSH session. Once max_encrypted_packets packets have been
+/usr/local/share/doc/snort/README.ssh:54:The maximum number of bytes allowed in the SSH server version string before
+/usr/local/share/doc/snort/README.ssh:59:Attempt to automatically detect SSH.
+/usr/local/share/doc/snort/README.ssh:65:* enable_ssh1crc32 *
+/usr/local/share/doc/snort/README.ssh:89:Enable alerts for non-SSH traffic on SSH ports.
+/usr/local/share/doc/snort/README.ssh:93:Looks for attacks on SSH server port 22.  Alerts at 19600 unacknowledged bytes
+/usr/local/share/doc/snort/README.ssh:96:preprocessor ssh: server_ports { 22 } \
+/usr/local/share/doc/snort/README.ssh:100:                  enable_ssh1crc32
+/usr/local/share/doc/snort/README.ssh:104:The SSH Preprocessor uses generator ID 128 and can produce the following 
+/usr/local/share/doc/snort/README.ssh:110:2     SSH1 CRC32 exploit
+/usr/local/share/doc/snort/README.ssh:115:7     Failed to detect SSH version string
+/usr/local/share/doc/snort/README.ssh:120:The SSH preprocessor should work by default.  After max_client_packets is 
+/usr/local/share/doc/snort/README.filters:71:    msg:”SSH Brute Force Attempt”;
+/usr/local/share/doc/snort/README.filters:73:    content:”SSH”; nocase; offset:0; depth:4; \
+/usr/local/share/doc/snort/README.thresholding:44:rule for detecting a too many login password attempts may require more than 5
+/usr/local/include/snort/dynamic_preproc/preprocids.h:58:#define PP_SSH                    11
+/usr/local/include/snort/dynamic_preproc/preprocids.h:113:                             ( UINT64_C(1) << PP_SMTP ) | ( UINT64_C(1) << PP_SSH ) | \
+/usr/local/include/snort/dynamic_preproc/preprocids.h:167:#define MAX_SSH_BUFFER_DUMP 11
+/usr/local/include/snort/dynamic_preproc/preprocids.h:182:    SSH_BUFFER_DUMP_FUNC,
+/usr/local/include/snort/dynamic_preproc/appId.h:797:    APP_ID_OPENSSH=771,
+/usr/local/include/snort/dynamic_preproc/appId.h:872:    APP_ID_SSH=846,
+/usr/local/include/snort/dynamic_preproc/appId.h:918:    APP_ID_VICTORIAS_SECRET=892,
+/usr/local/include/snort/dynamic_preproc/appId.h:978:    APP_ID_SSHELL=1115,
+/usr/local/include/snort/dynamic_preproc/ssl_ha.h:68:void SSLProcessHA(int ssl_index, bool update, void *data, uint32_t ssl_size);
+/usr/local/include/snort/dynamic_output/preprocids.h:58:#define PP_SSH                    11
+/usr/local/include/snort/dynamic_output/preprocids.h:113:                             ( UINT64_C(1) << PP_SMTP ) | ( UINT64_C(1) << PP_SSH ) | \
+/usr/local/include/snort/dynamic_output/preprocids.h:167:#define MAX_SSH_BUFFER_DUMP 11
+/usr/local/include/snort/dynamic_output/preprocids.h:182:    SSH_BUFFER_DUMP_FUNC,
+/usr/local/include/daq_common.h:274:#define DAQ_CAPA_UNPRIV_START   0x020   /* can call start() without root privileges */
+/usr/local/src/snort_dynamicsrc/ssl_ha.c:893:void SSLProcessHA(int ssl_index, bool update, void *data, uint32_t ssl_size)
+/usr/local/src/snort_dynamicsrc/ssl.c:476:                   /* Saw a TLS version, but this could also be an SSHv2 length.
+/usr/local/src/snort_dynamicsrc/sfxhash.h:92:  SFXHASH_NODE  * ghead, * gtail;  /// global - root of all nodes allocated in table
+/usr/local/src/snort_dynamicsrc/preprocids.h:58:#define PP_SSH                    11
+/usr/local/src/snort_dynamicsrc/preprocids.h:113:                             ( UINT64_C(1) << PP_SMTP ) | ( UINT64_C(1) << PP_SSH ) | \
+/usr/local/src/snort_dynamicsrc/preprocids.h:167:#define MAX_SSH_BUFFER_DUMP 11
+/usr/local/src/snort_dynamicsrc/preprocids.h:182:    SSH_BUFFER_DUMP_FUNC,
+/usr/local/src/snort_dynamicsrc/appId.h:797:    APP_ID_OPENSSH=771,
+/usr/local/src/snort_dynamicsrc/appId.h:872:    APP_ID_SSH=846,
+/usr/local/src/snort_dynamicsrc/appId.h:918:    APP_ID_VICTORIAS_SECRET=892,
+/usr/local/src/snort_dynamicsrc/appId.h:978:    APP_ID_SSHELL=1115,
+/usr/local/src/snort_dynamicsrc/ssl_ha.h:68:void SSLProcessHA(int ssl_index, bool update, void *data, uint32_t ssl_size);
