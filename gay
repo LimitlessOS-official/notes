@@ -1,0 +1,278 @@
+South park:
+Question 29
+Not complete
+Not graded
+Using proxychains wget -r, download the http contents from 192.168.4.40.
+
+What movie is the quote you found from?
+Answer:Question 29
+Question 30
+Not complete
+Not graded
+Using proxychains ftp, connect to 192.168.4.40 and download the flag.
+
+What movie is the quote you found from?
+Answer:Question 30
+Question 31
+Not complete
+Not graded
+Using proxychains, SSH to 192.168.4.40.
+
+What is the Hostname of this system?
+Answer:Question 31
+Question 32
+Not complete
+Not graded
+Find the path and filename of the flag file.
+
+From our Internet_Host, use proxychains to SCP the file from this system back to your system.
+
+What movie is the quote you found from?
+Answer:Question 32
+
+M.I.:
+Question 33
+Not complete
+Not graded
+We need to setup an SSH tunnel to the 10.1.1.14 but it has SSH closed from the outside.
+
+It does however have telnet (port 23) open.
+
+Setup a Local (-L) SSH port forward to map to our pivot of 10.1.1.14:23.
+
+This system will take us down the Remote (-R) tunnel route.
+
+Use this new local port forward to Telnet to the new system.
+
+What is the Hostname of this pivot system?
+Answer:Question 33
+Question 34
+Not complete
+Not graded
+Doing further passive reconnaissance.
+
+What is the system's secondary IP address\/CIDR?
+
+format: x.x.x.x\/xx
+Answer:Question 34
+Question 35
+Not complete
+Not graded
+Based on the pivot hosts' secondary IP address and CIDR.
+
+What is the usable address range of the inside network?
+
+Specify only the last octet address in the format:
+
+first-last
+Answer:Question 35
+Question 36
+Not complete
+Not graded
+Conduct Passive recon.
+
+What additional well-known service ports are open on the system that you did not see from your initial scans?
+
+Specify the ports sequentially and separated by commas. (i.e. 11,12,13)
+Answer:Question 36
+Question 37
+Not complete
+Not graded
+Identify the path and filename of the flag file. We will extract it soon.
+
+To allow us to move forward, build a Remote (-R) SSH tunnel back to the 10.1.1.28 to share out the localhost:22 of this system.
+
+Back on our Internet_Host, we just placed this port onto the 10.1.1.28 pivot.
+
+We now need to setup a Local (-L) SSH port forward to map to this created tunnel that will take us to the localhost:22 of the 10.1.1.14.
+
+Utilize this new SSH tunnel to SCP the flag file back to your Internet_Host.
+
+What movie is the quote you found from?
+Answer:Question 37
+Question 38
+Not complete
+Not graded
+Teardown your previous Dynamic tunnel if it is currently up.
+
+Setup a new Dynamic (-D) tunnel using our new Local (-L) to our pivot.
+
+Conduct a scan of the internal network using proxychains.
+
+Use the system's internal IP address\/CIDR as a guide for the network and IP range to scan.
+
+What 2 (new) system IP addresses did you find?
+
+Specify the last octet IP in order separated by commas. (i.e. 1,2)
+Answer:Question 38
+Question 39
+Not complete
+Not graded
+Using proxychains, access your pivot's own FTP service.
+
+What movie is the quote you found from?
+Answer:Question 39
+Question 40
+Not complete
+Not graded
+Using proxychains wget -r, download the http contents from 172.16.1.10.
+
+What movie is the quote you found from?
+Answer:Question 40
+Question 41
+Not complete
+Not graded
+Using proxychains wget -r, download the http contents from 172.16.1.13.
+
+What movie is the quote you found from?
+Answer:Question 41
+Question 42
+Not complete
+Not graded
+Using proxychains ftp, connect to 172.16.1.13 and download the flag.
+
+What movie is the quote you found from?
+Answer:Question 42
+
+Star Trek:
+Question 43
+Not complete
+Not graded
+Following the hint you found on 172.16.1.10.
+
+Scan this system to find it's SSH port.
+
+Use netcat to banner-grab the port to verify its SSH.
+
+What is its SSH port number?
+Answer:Question 43
+Question 44
+Not complete
+Not graded
+Using proxychains, SSH to 172.16.1.10 using the (-p) to specify the SSH port.
+
+What is the Hostname of this pivot system?
+Answer:Question 44
+Question 45
+Not complete
+Not graded
+Doing further passive reconnaissance.
+
+What is the system's secondary IP address\/CIDR?
+
+format: x.x.x.x\/xx
+Answer:Question 45
+Question 46
+Not complete
+Not graded
+Based on the pivot hosts' secondary IP address and CIDR.
+
+What is the usable address range of the inside network?
+
+Specify only the last octet address in the format:
+
+first-last
+Answer:Question 46
+Question 47
+Not complete
+Not graded
+Conduct Passive recon.
+
+What additional well-known service ports are open on the system that you did not see from your initial scans?
+
+Specify the ports sequentially and separated by commas. (i.e. 11,12,13)
+Answer:Question 47
+Question 48
+Not complete
+Not graded
+Setup a Local (-L) SSH port forward to map to our pivot of 172.16.1.10:{ssh port}.
+
+This system continue us down the Local (-L) tunnel route.
+
+ssh username\@localhost -p {port} -L {new-port}:172.16.1.10:{ssh port} -NT
+
+Teardown your previous Dynamic tunnel if it is currently up.
+
+Setup a new Dynamic (-D) tunnel using our new Local (-L) to our pivot.
+
+ssh username\@localhost -p {new-port} -D 9050 -NT
+
+Using proxychains ftp, connect to the localhost of the 172.16.1.10 and download the flag.
+
+What movie is the quote your found from?
+Answer:Question 48
+Question 49
+Not complete
+Not graded
+Use proxychains to SSH back to the system, find the path and filename of the flag file.
+
+From our Internet_Host, use proxychains to SCP the file from the pivot back to your system.
+
+What movie is the quote you found from?
+Answer:Question 49
+Question 50
+Not complete
+Not graded
+Conduct a scan of the internal network using proxychains.
+
+Use the system's internal IP address\/CIDR as a guide for the network and IP range to scan.
+
+What 1 (new) system IP addresses did you find?
+
+What is the last octet IP of this system?
+Answer:Question 50
+Question 51
+Not complete
+Not graded
+Using proxychains wget -r, download the http contents from 172.16.1.19.
+
+What movie is the quote you found from?
+Answer:Question 51
+
+Matrix:
+Question 52
+Not complete
+Not graded
+We need to setup an SSH tunnel to the 172.16.1.19 but it has SSH closed from the outside. It does however have telnet (port 23) open.
+
+Setup a Local (-L) SSH port forward to map to our pivot of 172.16.1.19:23.
+
+Use this new local port forward to Telnet to the new system.
+
+What is the Hostname of this pivot system?
+Answer:Question 52
+Question 53
+Not complete
+Not graded
+Conduct Passive recon.
+
+What additional well-known service ports are open on the system that you did not see from your initial scans?
+
+Specify the ports sequentially and separated by commas. (i.e. 11,12,13)
+Answer:Question 53
+Question 54
+Not complete
+Not graded
+Identify the path and filename of the flag file. We will extract it soon.
+
+To allow us to move forward, build a Remote (-R) SSH tunnel back to the 172.16.1.18 to share out the localhost:22 of this system.
+
+Back on our Internet_Host, we just placed this port onto the 172.16.1.18 pivot.
+
+We now need to setup a Local (-L) SSH port forward to map to this created tunnel that will take us to the localhost:22 of the 172.16.1.19.
+
+Utilize this new SSH tunnel to SCP the flag file back to your Internet_Host.
+
+What movie is the quote you found from?
+Answer:Question 54
+Question 55
+Not complete
+Not graded
+Teardown your previous Dynamic tunnel if it is currently up.
+
+Setup a new Dynamic (-D) tunnel using our new Local (-L) to our pivot.
+
+Using proxychains, access your pivot's own FTP service.
+
+What movie is the quote you found from?
+Answer:Question 55
