@@ -1,36 +1,17 @@
-shrek@peter-griffin:~$ cat -n /home/shrek/passauth.sh 
-     1	#!/bin/bash
-     2	sed -i 's/^ssh_pwauth:\s*0/ssh_pwauth: 1/' /etc/cloud/cloud.cfg
-     3	sed -i '/# %shrek        ALL=(ALL)       NOPASSWD: ALL/ c\%wheel        ALL=(ALL)       NOPASSWD: ALL' /etc/sudoers
-shrek@peter-griffin:~$ ls -l /home/shrek/passauth.sh 
--rwxr-xr-x 1 shrek shrek 192 Jul 10 20:34 /home/shrek/passauth.sh
-shrek@peter-griffin:~$ grep -R "passauth.sh" /etc /usr /opt /var 2>/dev/null 
-^C
-shrek@peter-griffin:~$ namei -l /root/.ssh
-f: /root/.ssh
-drwxr-xr-x root root /
-drwxr-xr-x root root root
-drwx------ root root .ssh
-shrek@peter-griffin:~$ ls -ld /root /root/.ssh
-drwxr-xr-x 5 root root 4096 May 18 16:26 /root
-drwx------ 2 root root 4096 Jun  5  2025 /root/.ssh
-shrek@peter-griffin:~$ ls -la /root/
-total 52
-drwxr-xr-x  5 root root  4096 May 18 16:26 .
-drwxr-xr-x 18 root root  4096 May 18 16:24 ..
--rw-------  1 root root 10244 Apr 23 09:35 .bash_history
--rw-r--r--  1 root root   571 Apr 10  2021 .bashrc
-drwx------  2 root root  4096 Jun 30  2025 .cache
--rw-------  1 root root    20 Apr 12 12:06 .lesshst
-drwxr-xr-x  3 root root  4096 Jun  5  2025 .local
--rwxr-xr-x  1 root root   192 May 18 16:24 passauth.sh
--rw-r--r--  1 root root   161 Jul  9  2019 .profile
-drwx------  2 root root  4096 Jun  5  2025 .ssh
--rw-r--r--  1 root root     0 Apr 12 12:05 .sudo_as_admin_successful
--rw-r--r--  1 root root   168 Mar 16 14:04 .wget-hsts
-shrek@peter-griffin:~$ ls -la /root/.ssh/
-ls: cannot open directory '/root/.ssh/': Permission denied
-shrek@peter-griffin:~$ cat /root/.ssh/passauth.sh
-cat: /root/.ssh/passauth.sh: Permission denied
-shrek@peter-griffin:~$ find /root/ -perm -4000 -exec ls -l 2>/dev/null \;
-shrek@peter-griffin:~$ find /root/ -perm -4000 -exec ls -l \; 2>/dev/null
+shrek@peter-griffin:~$ printf 'SITE HELP\r\nQUIT\r\n' | netcat -w 3 127.0.0.1 21
+220 ProFTPD Server (Debian) [::ffff:127.0.0.1]
+214-The following SITE commands are recognized (* =>'s unimplemented)
+ CPFR <sp> pathname
+ CPTO <sp> pathname
+ UTIME <sp> YYYYMMDDhhmm[ss] <sp> path
+ SYMLINK <sp> source <sp> destination
+ RMDIR <sp> path
+ MKDIR <sp> path
+ The following SITE extensions are recognized:
+ RATIO -- show all ratios in effect
+ QUOTA
+ HELP
+ CHGRP
+ CHMOD
+214 Direct comments to root@peter-griffin.kinetic
+221 Goodbye.
